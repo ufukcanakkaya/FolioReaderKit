@@ -96,6 +96,7 @@ class FolioReaderAddHighlightNote: UIViewController {
         textView.delegate = self
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.textColor = .black
+        textView.backgroundColor = .clear
         textView.font = UIFont.boldSystemFont(ofSize: 15)
         containerView.addSubview(textView)
         
@@ -129,7 +130,7 @@ class FolioReaderAddHighlightNote: UIViewController {
     }
     
     private func configureNavBar() {
-        let navBackground = folioReader.isNight(readerConfig.nightModeMenuBackground, UIColor.white)
+        let navBackground = folioReader.isNight(self.readerConfig.nightModeNavBackground, self.readerConfig.daysModeNavBackground)
         let tintColor = readerConfig.tintColor
         let navText = folioReader.isNight(UIColor.white, UIColor.black)
         let font = UIFont(name: "Avenir-Light", size: 17)!
