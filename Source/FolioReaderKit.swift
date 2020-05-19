@@ -160,6 +160,7 @@ extension FolioReader {
     open func presentReader(parentViewController: UIViewController, withEpubPath epubPath: String, unzipPath: String? = nil, andConfig config: FolioReaderConfig, shouldRemoveEpub: Bool = true, animated:
         Bool = true) {
         let readerContainer = FolioReaderContainer(withConfig: config, folioReader: self, epubPath: epubPath, unzipPath: unzipPath, removeEpub: shouldRemoveEpub)
+        readerContainer.modalPresentationStyle = .overFullScreen
         self.readerContainer = readerContainer
         parentViewController.present(readerContainer, animated: animated, completion: nil)
         addObservers()
