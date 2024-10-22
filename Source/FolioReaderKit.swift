@@ -209,6 +209,10 @@ extension FolioReader {
 
             if let readerCenter = self.readerCenter {
                 UIView.animate(withDuration: 0.6, animations: {
+                    let bgColor = self.readerContainer?.readerConfig.nightModeBackground.hexString(false) ?? "#121212"
+                    let textColor = self.readerContainer?.readerConfig.nightModeTextColor.hexString(false) ?? "#767676"
+                    _ = readerCenter.currentPage?.webView?.js("changeNightModeColor('\(bgColor)');") { _ in }
+                    _ = readerCenter.currentPage?.webView?.js("changeNightModeTextColor('\(textColor)');") { _ in }
                     _ = readerCenter.currentPage?.webView?.js("nightMode(\(self.nightMode))") { _ in }
                     readerCenter.pageIndicatorView?.reloadColors()
                     readerCenter.configureNavBar()

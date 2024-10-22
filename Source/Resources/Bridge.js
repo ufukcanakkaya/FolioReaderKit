@@ -67,6 +67,15 @@ function nightMode(enable) {
     }
 }
 
+function changeNightModeColor(color) {
+    document.documentElement.style.setProperty('--night-mode-bg-color', color);
+}
+
+function changeNightModeTextColor(color) {
+    document.documentElement.style.setProperty('--night-mode-text-color', color);
+    document.documentElement.style.setProperty('--night-mode-header-color', color);
+}
+
 // Set font size
 function setFontSize(cls) {
     var elm = document.documentElement;
