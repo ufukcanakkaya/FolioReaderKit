@@ -62,7 +62,7 @@ extension ScrollDirection {
  - parameter delay:   Delay in seconds
  - parameter closure: Closure
  */
-func delay(_ delay:Double, closure:@escaping ()->()) {
+public func delay(_ delay:Double, closure:@escaping ()->()) {
     DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(delay * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC), execute: closure)
 }
 
@@ -71,7 +71,11 @@ func delay(_ delay:Double, closure:@escaping ()->()) {
 
 internal extension Bundle {
     class func frameworkBundle() -> Bundle {
+        #if SWIFT_PACKAGE
+        return Bundle.module
+        #else
         return Bundle(for: FolioReader.self)
+        #endif
     }
 }
 
@@ -463,6 +467,10 @@ internal extension UIViewController {
         navBar?.isTranslucent = translucent
         navBar?.tintColor = tintColor
         navBar?.titleTextAttributes = [NSAttributedString.Key.foregroundColor: titleColor, NSAttributedString.Key.font: font]
+        
+        if let segmentedControl = self.navigationItem.titleView as? UISegmentedControl {
+            segmentedControl.setTitleTextAttributes([.foregroundColor: titleColor], for: .normal)
+        }
     }
 }
 /**
@@ -529,4 +537,8 @@ extension Array {
     subscript(safe index: Int) -> Element? {
         return indices ~= index ? self[index] : nil
     }
+}
+
+func folioLogger(_ logMessage: String, functionName: String = #function, lineNumber: Int = #line) {
+    print("[\(Date())] \(functionName):\(lineNumber): \(logMessage)")
 }

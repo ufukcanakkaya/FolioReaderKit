@@ -14,6 +14,7 @@ import SSZipArchive
 import ZipArchive
 #endif
 
+@available(*, deprecated, message: "use FREpubParserArchive instead")
 class FREpubParser: NSObject, SSZipArchiveDelegate {
 
     let book = FRBook()
@@ -162,7 +163,9 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
             resource.fullHref = resourcesBasePath.appendingPathComponent(resource.href).removingPercentEncoding
             resource.mediaType = MediaType.by(name: $0.attributes["media-type"] ?? "", fileName: resource.href)
             resource.mediaOverlay = $0.attributes["media-overlay"]
-
+            
+            resource.size = (try? FileManager.default.attributesOfItem(atPath: resource.fullHref)[.size] as? NSNumber)?.intValue
+            
             // if a .smil file is listed in resources, go parse that file now and save it on book model
             if (resource.mediaType != nil && resource.mediaType == .smil) {
                 readSmilFile(resource)
@@ -206,6 +209,19 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
         book.tableOfContents = findTableOfContents()
         book.flatTableOfContents = flatTOC
 
+        // Create TOC Map
+        book.resourceTocMap = [:]
+        book.flatTableOfContents.forEach { tocItem in
+            guard let resource = tocItem.resource else { return }
+            
+            var tocList = book.resourceTocMap[resource]
+            if tocList == nil {
+                tocList = [FRTocReference]()
+                book.resourceTocMap[resource] = tocList
+            }
+            book.resourceTocMap[resource]?.append(tocItem)
+        }
+        
         // Read Spine
         let spine = xmlDoc.root["spine"]
         book.spine = readSpine(spine.children)
@@ -288,7 +304,7 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
         guard let items = tocItems else { return tableOfContent }
 
         for item in items {
-            guard let ref = readTOCReference(item) else { continue }
+            guard let ref = readTOCReference(item, level: 0) else { continue }
             tableOfContent.append(ref)
         }
 
@@ -310,7 +326,7 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
         return nil
     }
 
-    fileprivate func readTOCReference(_ navpointElement: AEXMLElement) -> FRTocReference? {
+    fileprivate func readTOCReference(_ navpointElement: AEXMLElement, level: Int) -> FRTocReference? {
         var label = ""
 
         if book.tocResource?.mediaType == MediaType.ncx {
@@ -324,12 +340,12 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
             let href = hrefSplit[0]
 
             let resource = book.resources.findByHref(href)
-            let toc = FRTocReference(title: label, resource: resource, fragmentID: fragmentID)
+            let toc = FRTocReference(title: label, resource: resource, fragmentID: fragmentID, level: level)
 
             // Recursively find child
             if let navPoints = navpointElement["navPoint"].all {
                 for navPoint in navPoints {
-                    guard let item = readTOCReference(navPoint) else { continue }
+                    guard let item = readTOCReference(navPoint, level: level + 1) else { continue }
                     toc.children.append(item)
                 }
             }
@@ -345,12 +361,12 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
             let href = hrefSplit[0]
 
             let resource = book.resources.findByHref(href)
-            let toc = FRTocReference(title: label, resource: resource, fragmentID: fragmentID)
+            let toc = FRTocReference(title: label, resource: resource, fragmentID: fragmentID, level: level)
 
             // Recursively find child
             if let navPoints = navpointElement["ol"]["li"].all {
                 for navPoint in navPoints {
-                    guard let item = readTOCReference(navPoint) else { continue }
+                    guard let item = readTOCReference(navPoint, level: level + 1) else { continue }
                     toc.children.append(item)
                 }
             }
@@ -453,6 +469,7 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
     fileprivate func readSpine(_ tags: [AEXMLElement]) -> FRSpine {
         let spine = FRSpine()
 
+        var sizeUpto = 0
         for tag in tags {
             guard let idref = tag.attributes["idref"] else { continue }
             var linear = true
@@ -461,11 +478,13 @@ class FREpubParser: NSObject, SSZipArchiveDelegate {
                 linear = tag.attributes["linear"] == "yes" ? true : false
             }
 
-            if book.resources.containsById(idref) {
-                guard let resource = book.resources.findById(idref) else { continue }
-                spine.spineReferences.append(Spine(resource: resource, linear: linear))
-            }
+            guard let resource = book.resources.findById(idref) else { continue }
+            resource.spineIndices.append(spine.spineReferences.count)
+            spine.spineReferences.append(Spine(resource: resource, linear: linear, sizeUpto: sizeUpto))
+            sizeUpto += Int(resource.size ?? 0)
         }
+        spine.size = sizeUpto
+        
         return spine
     }
 

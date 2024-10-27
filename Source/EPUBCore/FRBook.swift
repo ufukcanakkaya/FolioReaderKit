@@ -8,6 +8,7 @@
 //
 
 import UIKit
+import ZIPFoundation
 
 open class FRBook: NSObject {
     var metadata = FRMetadata()
@@ -23,7 +24,17 @@ open class FRBook: NSObject {
     public var resources = FRResources()
     public var tableOfContents: [FRTocReference]!
     public var flatTableOfContents: [FRTocReference]!
+    public var resourceTocMap: [FRResource: [FRTocReference]]!
 
+    public var epubArchive: Archive?
+    
+    public var threadEpubArchive: Archive? {
+        guard let archiveURL = self.epubArchive?.url,
+              let epubArchive = Archive(url: archiveURL, accessMode: .read)
+        else { return nil }
+        return epubArchive
+    }
+    
     var hasAudio: Bool {
         return smils.smils.count > 0
     }
@@ -34,6 +45,27 @@ open class FRBook: NSObject {
 
     var authorName: String? {
         return metadata.creators.first?.name
+    }
+
+    /**
+     Find a page by FRTocReference, i.e IndexPath.row or pageNumber-1
+     */
+    public func findPageByResource(_ reference: FRTocReference) -> Int {
+        if let resHref = reference.resource?.href,
+           let index = resources.findByHref(resHref)?.spineIndices.first {
+            return index
+        }
+            
+        return spine.spineReferences.count
+        
+//        var count = 0
+//        for item in spine.spineReferences {
+//            if let resource = reference.resource, item.resource == resource {
+//                return count
+//            }
+//            count += 1
+//        }
+//        return count
     }
 
     // MARK: - Media Overlay Metadata
@@ -83,5 +115,38 @@ open class FRBook: NSObject {
     // @NOTE: should "#" be automatically prefixed with the ID?
     func duration(for ID: String) -> String? {
         return metadata.find(byProperty: "media:duration", refinedBy: ID)?.value
+    }
+    
+    // MARK: - for Bundle Book
+    public var bundleRootTableOfContents: [FRTocReference]!
+    public var bundleBookSizes: [Int]!
+
+    public func updateBundleInfo(rootTocLevel: Int) {
+        self.bundleRootTableOfContents = self.flatTableOfContents.filter {
+            $0.level == rootTocLevel - 1
+        }
+        
+        self.bundleBookSizes = (bundleRootTableOfContents.startIndex..<bundleRootTableOfContents.endIndex).map { bookTocIndex in
+            let bookTocAfterIndex = bundleRootTableOfContents.index(bookTocIndex, offsetBy: 1, limitedBy: bundleRootTableOfContents.endIndex - 1) ?? bookTocIndex
+            
+            let bookTocSpineIndex = self.findPageByResource(bundleRootTableOfContents[bookTocIndex])
+            let bookTocAfterSpineIndex = self.findPageByResource(bundleRootTableOfContents[bookTocAfterIndex])
+            
+            let bookTocSizeUpto = spine.spineReferences[bookTocSpineIndex].sizeUpTo
+            var bookTocAfterSizeUpto = spine.spineReferences[bookTocAfterSpineIndex].sizeUpTo
+            
+            var bookTocParent = bundleRootTableOfContents[bookTocIndex].parent
+            var bookTocAfterParent = bundleRootTableOfContents[bookTocAfterIndex].parent
+            while bookTocParent != bookTocAfterParent {
+                if let parent = bookTocAfterParent {
+                    let parentIndex = self.findPageByResource(parent)
+                    bookTocAfterSizeUpto = spine.spineReferences[parentIndex].sizeUpTo
+                }
+                bookTocParent = bookTocParent?.parent
+                bookTocAfterParent = bookTocAfterParent?.parent
+            }
+            
+            return bookTocAfterSpineIndex == bookTocSpineIndex ? spine.size - bookTocSizeUpto : bookTocAfterSizeUpto - bookTocSizeUpto
+        }
     }
 }
