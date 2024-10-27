@@ -382,23 +382,22 @@ open class FolioReaderAudioPlayer: NSObject {
         }
 
         let playbackActiveClass = book.playbackActiveClass
-        
-        currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')", completionHandler: { (callback, error) in
-            guard error == nil, let sentence = callback as? String else { return }
-            
+        guard let sentence = currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')") else {
             if (readerCenter.isLastPage() == true) {
                 self.stop()
             } else {
                 readerCenter.changePageToNext()
             }
-            
-            guard let href = readerCenter.getCurrentChapter()?.href else {
-                return
-            }
 
-            // TODO QUESTION: The previous code made it possible to call `playText` with the parameter `href` being an empty string. Was that valid? should this logic be kept?
-            self.playText(href, text: sentence)
-        })
+            return
+        }
+
+        guard let href = readerCenter.getCurrentChapter()?.href else {
+            return
+        }
+
+        // TODO QUESTION: The previous code made it possible to call `playText` with the parameter `href` being an empty string. Was that valid? should this logic be kept?
+        self.playText(href, text: sentence)
     }
 
     func readCurrentSentence() {
@@ -518,16 +517,33 @@ open class FolioReaderAudioPlayer: NSObject {
 
         let command = MPRemoteCommandCenter.shared()
         command.previousTrackCommand.isEnabled = true
-        command.previousTrackCommand.addTarget(self, action: #selector(playPrevChapter))
-        command.nextTrackCommand.isEnabled = true
-        command.nextTrackCommand.addTarget(self, action: #selector(playNextChapter))
-        command.pauseCommand.isEnabled = true
-        command.pauseCommand.addTarget(self, action: #selector(pause))
-        command.playCommand.isEnabled = true
-        command.playCommand.addTarget(self, action: #selector(play))
-        command.togglePlayPauseCommand.isEnabled = true
-        command.togglePlayPauseCommand.addTarget(self, action: #selector(togglePlay))
+        command.previousTrackCommand.addTarget(handler: { (event) in
+            self.playPrevChapter()
+            return MPRemoteCommandHandlerStatus.success}
+        )
 
+        command.nextTrackCommand.isEnabled = true
+        command.nextTrackCommand.addTarget(handler: { (event) in
+            self.playNextChapter()
+            return MPRemoteCommandHandlerStatus.success}
+        )
+
+        command.pauseCommand.isEnabled = true
+        command.pauseCommand.addTarget(handler: { (event) in
+            self.pause()
+            return MPRemoteCommandHandlerStatus.success}
+        )
+
+        command.playCommand.isEnabled = true
+        command.playCommand.addTarget(handler: { (event) in
+            self.play()
+            return MPRemoteCommandHandlerStatus.success}
+        )
+        command.togglePlayPauseCommand.isEnabled = true
+        command.togglePlayPauseCommand.addTarget(handler: { (event) in
+            self.togglePlay()
+            return MPRemoteCommandHandlerStatus.success}
+        )
         registeredCommands = true
     }
 }

@@ -13,8 +13,6 @@ class ViewController: UIViewController {
 
     @IBOutlet weak var bookOne: UIButton?
     @IBOutlet weak var bookTwo: UIButton?
-    @IBOutlet weak var bookThree: UIButton?
-    
     let folioReader = FolioReader()
 
     override func viewDidLoad() {
@@ -22,11 +20,9 @@ class ViewController: UIViewController {
 
         self.bookOne?.tag = Epub.bookOne.rawValue
         self.bookTwo?.tag = Epub.bookTwo.rawValue
-        self.bookThree?.tag = Epub.bookThree.rawValue
 
         self.setCover(self.bookOne, index: 0)
-//        self.setCover(self.bookTwo, index: 1)
-//        self.setCover(self.bookThree, index: 2)
+        self.setCover(self.bookTwo, index: 1)
     }
 
     private func readerConfiguration(forEpub epub: Epub) -> FolioReaderConfig {
