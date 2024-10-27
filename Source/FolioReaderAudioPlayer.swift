@@ -46,7 +46,7 @@ open class FolioReaderAudioPlayer: NSObject {
         let session = AVAudioSession.sharedInstance()
         do {
             if #available(iOS 10.0, *) {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .mixWithOthers)
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             } else {
                 // Fallback on earlier versions
 //                Workaround until https://forums.swift.org/t/using-methods-marked-unavailable-in-swift-4-2/14949 isn't fixed
@@ -382,19 +382,23 @@ open class FolioReaderAudioPlayer: NSObject {
         }
 
         let playbackActiveClass = book.playbackActiveClass
-        currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')") { sentence in
-            guard let sentence = sentence else {
-                if readerCenter.isLastPage {
-                    self.stop()
-                } else {
-                    readerCenter.changePageToNext()
-                }
+        
+        currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')", completionHandler: { (callback, error) in
+            guard error == nil, let sentence = callback as? String else { return }
+            
+            if (readerCenter.isLastPage() == true) {
+                self.stop()
+            } else {
+                readerCenter.changePageToNext()
+            }
+            
+            guard let href = readerCenter.getCurrentChapter()?.href else {
                 return
             }
-            guard let href = readerCenter.currentPage?.getChapter()?.href else { return }
+
             // TODO QUESTION: The previous code made it possible to call `playText` with the parameter `href` being an empty string. Was that valid? should this logic be kept?
             self.playText(href, text: sentence)
-        }
+        })
     }
 
     func readCurrentSentence() {
@@ -452,10 +456,7 @@ open class FolioReaderAudioPlayer: NSObject {
 
         // Get book Artwork
         if let coverImage = self.book.coverImage, let artwork = UIImage(contentsOfFile: coverImage.fullHref) {
-            //let albumArt = MPMediaItemArtwork(image: artwork)
-            let albumArt = MPMediaItemArtwork(boundsSize: artwork.size) { _ in
-                artwork
-            }
+            let albumArt = MPMediaItemArtwork(image: artwork)
             songInfo[MPMediaItemPropertyArtwork] = albumArt
         }
 
@@ -494,7 +495,7 @@ open class FolioReaderAudioPlayer: NSObject {
      the `currentPage` in ReaderCenter may not have updated just yet
      */
     func getCurrentChapterName() -> String? {
-        guard let chapter = self.folioReader.readerCenter?.currentPage?.getChapter() else {
+        guard let chapter = self.folioReader.readerCenter?.getCurrentChapter() else {
             return nil
         }
 
@@ -517,33 +518,16 @@ open class FolioReaderAudioPlayer: NSObject {
 
         let command = MPRemoteCommandCenter.shared()
         command.previousTrackCommand.isEnabled = true
-        command.previousTrackCommand.addTarget(handler: { (event) in
-            self.playPrevChapter()
-            return MPRemoteCommandHandlerStatus.success}
-        )
-
+        command.previousTrackCommand.addTarget(self, action: #selector(playPrevChapter))
         command.nextTrackCommand.isEnabled = true
-        command.nextTrackCommand.addTarget(handler: { (event) in
-            self.playNextChapter()
-            return MPRemoteCommandHandlerStatus.success}
-        )
-
+        command.nextTrackCommand.addTarget(self, action: #selector(playNextChapter))
         command.pauseCommand.isEnabled = true
-        command.pauseCommand.addTarget(handler: { (event) in
-            self.pause()
-            return MPRemoteCommandHandlerStatus.success}
-        )
-
+        command.pauseCommand.addTarget(self, action: #selector(pause))
         command.playCommand.isEnabled = true
-        command.playCommand.addTarget(handler: { (event) in
-            self.play()
-            return MPRemoteCommandHandlerStatus.success}
-        )
+        command.playCommand.addTarget(self, action: #selector(play))
         command.togglePlayPauseCommand.isEnabled = true
-        command.togglePlayPauseCommand.addTarget(handler: { (event) in
-            self.togglePlay()
-            return MPRemoteCommandHandlerStatus.success}
-        )
+        command.togglePlayPauseCommand.addTarget(self, action: #selector(togglePlay))
+
         registeredCommands = true
     }
 }

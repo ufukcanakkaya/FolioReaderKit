@@ -8,39 +8,33 @@
 
 import UIKit
 
+//import RealmSwift
+
 // MARK: - FolioReaderScrollDirection
 
 /// Defines the Reader scrolling direction
 ///
-/// - vertical: Section and content scroll on vertical, LTR WRITING ONLY
-/// - horitonzalWithPagedContent: Enable content pagination, section scroll on horizontal.
-/// - horizontalWithScrollContent: Sections scroll horizontal and content scroll on vertical/horizontal based on writing direction,
+/// - vertical: Section and content scroll on vertical.
+/// - horizontal: Section and content scroll on horizontal.
+/// - horizontalWithVerticalContent: Sections scroll horizontal and content scroll on vertical.
 /// - defaultVertical: The default scroll direction, if not overridden; works as .vertical.
 public enum FolioReaderScrollDirection: Int {
     case vertical
-    case horitonzalWithPagedContent
-    case horizontalWithScrollContent
+    case horizontal
+    case horizontalWithVerticalContent
     case defaultVertical
 
     /// The current scroll direction
     ///
     /// - Returns: Returns `UICollectionViewScrollDirection`
-    func collectionViewScrollDirection(isWritingRTL: Bool) -> UICollectionView.ScrollDirection {
+    func collectionViewScrollDirection() -> UICollectionView.ScrollDirection {
         switch self {
         case .vertical, .defaultVertical:
             return .vertical
-        case .horitonzalWithPagedContent, .horizontalWithScrollContent:
+        case .horizontal, .horizontalWithVerticalContent:
             return .horizontal
         }
     }
-}
-
-public enum FolioReaderThemeMode: Int {
-    case day
-    case serpia
-    case grass
-    case dark
-    case night
 }
 
 // MARK: - ClassBasedOnClickListener
@@ -104,83 +98,48 @@ open class FolioReaderConfig: NSObject {
     // MARK: Colors
 
     /// Base header custom TintColor
-    open var tintColor = UIColor(rgba: "#6ACC50")
+    open var tintColor = UIColor(rgba: "#F9F4F2")
 
     /// Menu background color
-    open var menuBackgroundColor = UIColor.white
+    open var menuBackgroundColor = UIColor(rgba: "#231E4E")
 
     /// Menu separator Color
     open var menuSeparatorColor = UIColor(rgba: "#D7D7D7")
 
     /// Menu text color
-    open var menuTextColor = UIColor(rgba: "#767676")
+    open var menuTextColor = UIColor(rgba: "#F9F4F2")
 
     /// Menu text color
-    open var menuTextColorSelected = UIColor(rgba: "#6ACC50")
+    open var menuTextColorSelected = UIColor(rgba: "#D2D3DB")
     
     // Day mode nav color
-    open var daysModeNavBackground = UIColor.white
+    open var daysModeNavBackground = UIColor(rgba: "#231E4E")
+
+    /// Day mode background color
+    open var daysModeBackground = UIColor(rgba: "#231E4E")
     
     // Night mode nav color
     open var nightModeNavBackground = UIColor(rgba: "#131313")
     
     /// Night mode background color
-    open var nightModeBackground = UIColor(rgba: "#131313")
+    open var nightModeBackground = UIColor(rgba: "#000000")
 
     /// Night mode menu background color
     open var nightModeMenuBackground = UIColor(rgba: "#1E1E1E")
 
-    // theme mode nav color
-    open var themeModeNavBackground = [
-        UIColor.white,
-        UIColor(rgba: "#FBF0D9"),
-        UIColor(rgba: "#BAD5C1"),
-        UIColor(rgba: "#000000"),
-        UIColor(rgba: "#131313")
-    ]
-    
-    /// theme mode background color
-    open var themeModeBackground = [
-        UIColor.white,
-        UIColor(rgba: "#FBF0D9"),
-        UIColor(rgba: "#BAD5C1"),
-        UIColor(rgba: "#000000"),
-        UIColor(rgba: "#131313")
-    ]
-
-    /// theme mode menu background color
-    open var themeModeMenuBackground = [
-        UIColor.white,
-        UIColor(rgba: "#FBF0D9"),
-        UIColor(rgba: "#BAD5C1"),
-        UIColor(rgba: "#000000"),
-        UIColor(rgba: "#1E1E1E")
-    ]
-
-    open var themeModeTextColor = [
-        UIColor.black,
-        UIColor(rgba: "#5F4B32"),
-        UIColor(rgba: "#37453F"),
-        UIColor(rgba: "#B6B6B6"),
-        UIColor(rgba: "#767676")
-    ]
-    
     /// Night mode separator color
     open var nightModeSeparatorColor = UIColor(white: 0.5, alpha: 0.2)
 
     /// Media overlay or TTS selection color
     open lazy var mediaOverlayColor: UIColor! = self.tintColor
-    
-    // MARK: User Fonts
-    open var userFontDescriptors = [String: CTFontDescriptor]()
-    
+
     // MARK: Custom actions
-    
+
     /// hide the navigation bar and the bottom status view
     open var hideBars = false
 
     /// If `canChangeScrollDirection` is `true` it will be overrided by user's option.
-    open var scrollDirection: FolioReaderScrollDirection = .horizontalWithScrollContent
+    open var scrollDirection: FolioReaderScrollDirection = .defaultVertical
 
     /// Enable or disable hability to user change scroll direction on menu.
     open var canChangeScrollDirection = true
@@ -189,13 +148,11 @@ open class FolioReaderConfig: NSObject {
     open var canChangeFontStyle = true
     
     /// Should hide navigation bar on user tap
-    open var shouldHideNavigationOnTap = false
+    open var shouldHideNavigationOnTap = true
 
     /// Allow sharing option, if `false` will hide all sharing icons and options
     open var allowSharing = true
 
-    open var allowCopy = true
-    
     /// Enable TTS (Text To Speech)
     open var enableTTS = true
     
@@ -208,8 +165,6 @@ open class FolioReaderConfig: NSObject {
     /// Go to saved position when open a book
     open var loadSavedPositionForCurrentBook = true
     
-    open var savedPositionForCurrentBook: FolioReaderReadPosition?
-    
     // MARK: Quote image share
 
     /// Custom Quote logo
@@ -221,56 +176,39 @@ open class FolioReaderConfig: NSObject {
     /// Enable or disable default Quote Image backgrounds
     open var quotePreserveDefaultBackgrounds = true
 
-    /// Use the readers `UIMenuController` which enables the highlighting etc. The default is `true`. If set to false it's possible to modify the shared `UIMenuController` for yourself. Note: This doesn't disable the text selection in the web view.
-    open var useReaderMenuController = true
+    // MARK: Realm
 
-    open var enableMDictViewer = false
-    
-    open var serverPort = 0
-    
-    /// Used to distinguish between multiple or different reader instances. The content of the user defaults (font settings etc.) depends on this identifier. The default is `nil`.
-    open var identifier: String?
+    /// Realm configuration for storing highlights
+//    open var realmConfiguration = Realm.Configuration(schemaVersion: 2)
 
     // MARK: Localized strings
 
     /// Localizes Highlight title
     open var localizedHighlightsTitle = NSLocalizedString("Highlights", comment: "")
 
-    open var localizedBookmarksTitle = NSLocalizedString("Bookmarks", comment: "")
-    
     /// Localizes Content title
     open var localizedContentsTitle = NSLocalizedString("Contents", comment: "")
 
-    open var localizedResourcesTitle = NSLocalizedString("Resources", comment: "")
-    
-    open var localizedHistoryTitle = NSLocalizedString("History", comment: "")
-    
-    open var localizedBooksTitle = NSLocalizedString("Books", comment: "")
-    
-    open var localizedTopicsTitle = NSLocalizedString("Topics", comment: "")
-    
+    /// Use the readers `UIMenuController` which enables the highlighting etc. The default is `true`. If set to false it's possible to modify the shared `UIMenuController` for yourself. Note: This doesn't disable the text selection in the web view.
+    open var useReaderMenuController = true
+
+    /// Used to distinguish between multiple or different reader instances. The content of the user defaults (font settings etc.) depends on this identifier. The default is `nil`.
+    open var identifier: String?
+
     /// Localizes Highlight date format. This is a `dateFormat` from `NSDateFormatter`, so be careful 🤔
     open var localizedHighlightsDateFormat = "MMM dd, YYYY | HH:mm"
     open var localizedHighlightMenu = NSLocalizedString("Highlight", comment: "")
     open var localizedDefineMenu = NSLocalizedString("Define", comment: "")
-    open var localizedMDictMenu = NSLocalizedString("MDict", comment: "")
     open var localizedPlayMenu = NSLocalizedString("Play", comment: "")
     open var localizedPauseMenu = NSLocalizedString("Pause", comment: "")
-    open var localizedFontMenuDark = NSLocalizedString("Dark", comment: "")
     open var localizedFontMenuNight = NSLocalizedString("Night", comment: "")
     open var localizedPlayerMenuStyle = NSLocalizedString("Style", comment: "")
     open var localizedFontMenuDay = NSLocalizedString("Day", comment: "")
-    open var localizedFontMenuSerpia = NSLocalizedString("Serpia", comment: "")
-    open var localizedFontMenuGreen = NSLocalizedString("Green", comment: "")
     open var localizedLayoutHorizontal = NSLocalizedString("Horizontal", comment: "")
     open var localizedLayoutVertical = NSLocalizedString("Vertical", comment: "")
-    open var localizedLayoutHybrid = NSLocalizedString("Hybrid", comment: "")
-    open var localizedLayoutPaged = NSLocalizedString("Paged", comment: "")
-    open var localizedLayoutScroll = NSLocalizedString("Scroll", comment: "")
-
-    
     open var localizedReaderOnePageLeft = NSLocalizedString("1 page left", comment: "")
     open var localizedReaderManyPagesLeft = NSLocalizedString("pages left", comment: "")
+    open var localizedPercentageOfBookCompleted = NSLocalizedString("book completed", comment: "")
     open var localizedReaderManyMinutes = NSLocalizedString("minutes", comment: "")
     open var localizedReaderOneMinute = NSLocalizedString("1 minute", comment: "")
     open var localizedReaderLessThanOneMinute = NSLocalizedString("Less than a minute", comment: "")
@@ -288,8 +226,6 @@ open class FolioReaderConfig: NSObject {
     open var localizedSave = NSLocalizedString("Save", comment: "")
     open var localizedHighlightNote = NSLocalizedString("Note", comment: "")
 
-    public var debug = FolioReaderDebugOptions()
-    
     public convenience init(withIdentifier identifier: String) {
         self.init()
 
@@ -317,25 +253,11 @@ open class FolioReaderConfig: NSObject {
 
      - returns: The right value based on direction.
      */
-    func isDirection<T> (_ vertical: T, _ horizontalContentPaged: T, _ horizontalContentScroll: T) -> T {
+    func isDirection<T> (_ vertical: T, _ horizontal: T, _ horizontalContentVertical: T) -> T {
         switch self.scrollDirection {
         case .vertical, .defaultVertical:       return vertical
-        case .horitonzalWithPagedContent:       return horizontalContentPaged
-        case .horizontalWithScrollContent:      return horizontalContentScroll
+        case .horizontal:                       return horizontal
+        case .horizontalWithVerticalContent:    return horizontalContentVertical
         }
-    }
-}
-
-public struct FolioReaderDebugOptions: OptionSet {
-    public let rawValue: Int
-
-    public static let htmlStyling    = FolioReaderDebugOptions(rawValue: 1 << 0)
-    public static let viewTransition  = FolioReaderDebugOptions(rawValue: 1 << 1)
-    public static let borderHighlight   = FolioReaderDebugOptions(rawValue: 1 << 2)
-    public static let contentMenu = FolioReaderDebugOptions(rawValue: 1 << 3)
-    public static let functionTrace = FolioReaderDebugOptions(rawValue: 1 << 16)
-
-    public init(rawValue: Int) {
-        self.rawValue = rawValue
     }
 }

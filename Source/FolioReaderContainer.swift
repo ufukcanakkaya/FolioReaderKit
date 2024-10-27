@@ -8,18 +8,19 @@
 
 import UIKit
 import FontBlaster
-import ZIPFoundation
 
 /// Reader container
 open class FolioReaderContainer: UIViewController {
     var shouldHideStatusBar = true
+    var shouldRemoveEpub = true
     
     // Mark those property as public so they can accessed from other classes/subclasses.
     public var epubPath: String
-    public var book: FRBook
+	public var unzipPath: String?
+    var decryptionKey: String
     
-    public var centerNavigationController: UINavigationController!
-    public var centerViewController: FolioReaderCenter!
+    public var centerNavigationController: UINavigationController?
+    public var centerViewController: FolioReaderCenter?
     public var audioPlayer: FolioReaderAudioPlayer?
     
     public var readerConfig: FolioReaderConfig
@@ -37,12 +38,14 @@ open class FolioReaderContainer: UIViewController {
     ///   - path: The ePub path on system. Must not be nil nor empty string.
 	///   - unzipPath: Path to unzip the compressed epub.
     ///   - removeEpub: Should delete the original file after unzip? Default to `true` so the ePub will be unziped only once.
-    public init(withConfig config: FolioReaderConfig, folioReader: FolioReader, epubPath path: String) {
+    public init(withConfig config: FolioReaderConfig, folioReader: FolioReader, epubPath path: String, unzipPath: String? = nil, decryptionKey: String = "", removeEpub: Bool = true) {
         self.readerConfig = config
         self.folioReader = folioReader
         self.epubPath = path
-        self.book = FRBook()
-
+		self.unzipPath = unzipPath
+        self.shouldRemoveEpub = removeEpub
+        self.decryptionKey = decryptionKey
+        
         super.init(nibName: nil, bundle: Bundle.frameworkBundle())
 
         // Configure the folio reader.
@@ -62,7 +65,8 @@ open class FolioReaderContainer: UIViewController {
         self.readerConfig = FolioReaderConfig()
         self.folioReader = FolioReader()
         self.epubPath = ""
-        self.book = FRBook()
+        self.decryptionKey = ""
+        self.shouldRemoveEpub = false
 
         super.init(coder: aDecoder)
 
@@ -71,9 +75,21 @@ open class FolioReaderContainer: UIViewController {
     }
 
     /// Common Initialization
-    open func initialization() {
+    fileprivate func initialization() {
         // Register custom fonts
         FontBlaster.blast(bundle: Bundle.frameworkBundle())
+
+        // Register initial defaults
+        self.folioReader.register(defaults: [
+            kCurrentFontFamily: FolioReaderFont.andada.rawValue,
+            kNightMode: false,
+            kCurrentFontSize: 2,
+            kCurrentAudioRate: 1,
+            kCurrentHighlightStyle: 0,
+            kCurrentTOCMenu: 0,
+            kCurrentMediaOverlayStyle: MediaOverlayStyle.default.rawValue,
+            kCurrentScrollDirection: FolioReaderScrollDirection.defaultVertical.rawValue
+            ])
     }
 
     /// Set the `FolioReaderConfig` and epubPath.
@@ -83,11 +99,13 @@ open class FolioReaderContainer: UIViewController {
     ///   - path: The ePub path on system. Must not be nil nor empty string.
 	///   - unzipPath: Path to unzip the compressed epub.
     ///   - removeEpub: Should delete the original file after unzip? Default to `true` so the ePub will be unziped only once.
-    open func setupConfig(_ config: FolioReaderConfig, epubPath path: String) {
+    open func setupConfig(_ config: FolioReaderConfig, epubPath path: String, unzipPath: String? = nil, removeEpub: Bool = true) {
         self.readerConfig = config
         self.folioReader = FolioReader()
         self.folioReader.readerContainer = self
         self.epubPath = path
+		self.unzipPath = unzipPath
+        self.shouldRemoveEpub = removeEpub
     }
 
     // MARK: - View life cicle
@@ -95,12 +113,12 @@ open class FolioReaderContainer: UIViewController {
     override open func viewDidLoad() {
         super.viewDidLoad()
 
-        //let canChangeScrollDirection = self.readerConfig.canChangeScrollDirection
-        //self.readerConfig.canChangeScrollDirection = self.readerConfig.isDirection(canChangeScrollDirection, canChangeScrollDirection, false)
+        let canChangeScrollDirection = self.readerConfig.canChangeScrollDirection
+        self.readerConfig.canChangeScrollDirection = self.readerConfig.isDirection(canChangeScrollDirection, canChangeScrollDirection, false)
 
         // If user can change scroll direction use the last saved
         if self.readerConfig.canChangeScrollDirection == true {
-            var scrollDirection = FolioReaderScrollDirection(rawValue: self.folioReader.currentScrollDirection) ?? .horizontalWithScrollContent
+            var scrollDirection = FolioReaderScrollDirection(rawValue: self.folioReader.currentScrollDirection) ?? .vertical
             if (scrollDirection == .defaultVertical && self.readerConfig.scrollDirection != .defaultVertical) {
                 scrollDirection = self.readerConfig.scrollDirection
             }
@@ -111,27 +129,18 @@ open class FolioReaderContainer: UIViewController {
         let hideBars = readerConfig.hideBars
         self.readerConfig.shouldHideNavigationOnTap = ((hideBars == true) ? true : self.readerConfig.shouldHideNavigationOnTap)
 
-        let rootViewController = FolioReaderCenter(withContainer: self)
-        let centerNavigationController = UINavigationController(rootViewController: rootViewController)
-        
-        if readerConfig.debug.contains(.borderHighlight) {
-            rootViewController.view.layer.borderWidth = 6
-            rootViewController.view.layer.borderColor = UIColor.green.cgColor
-        }
-        self.centerViewController = rootViewController
+        self.centerViewController = FolioReaderCenter(withContainer: self)
 
-        centerNavigationController.setNavigationBarHidden(self.readerConfig.shouldHideNavigationOnTap, animated: false)
-        self.view.addSubview(centerNavigationController.view)
-        self.addChild(centerNavigationController)
-        if readerConfig.debug.contains(.borderHighlight) {
-            centerNavigationController.view.layer.borderWidth = 4
-            centerNavigationController.view.layer.borderColor = UIColor.blue.cgColor
-            centerNavigationController.navigationBar.layer.borderWidth = 6
-            centerNavigationController.navigationBar.layer.borderColor = UIColor.yellow.cgColor
+        if let rootViewController = self.centerViewController {
+            self.centerNavigationController = UINavigationController(rootViewController: rootViewController)
         }
-        centerNavigationController.didMove(toParent: self)
-        
-        self.centerNavigationController = centerNavigationController
+
+        self.centerNavigationController?.setNavigationBarHidden(self.readerConfig.shouldHideNavigationOnTap, animated: false)
+        if let _centerNavigationController = self.centerNavigationController {
+            self.view.addSubview(_centerNavigationController.view)
+            self.addChild(_centerNavigationController)
+        }
+        self.centerNavigationController?.didMove(toParent: self)
 
         if (self.readerConfig.hideBars == true) {
             self.readerConfig.shouldHideNavigationOnTap = false
@@ -145,131 +154,42 @@ open class FolioReaderContainer: UIViewController {
             self.errorOnLoad = true
             return
         }
-        
-        if readerConfig.debug.contains(.borderHighlight) {
-            self.view.layer.borderWidth = 2
-            self.view.layer.borderColor = UIColor.red.cgColor
-        }
-    }
 
-    override open func viewWillAppear(_ animated: Bool) {
-        defer {
-            super.viewWillAppear(animated)
-        }
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-
-//                do {
-//                    guard let archive = Archive(url: URL(fileURLWithPath: self.epubPath), accessMode: .read, preferredEncoding: .utf8) else { throw FolioReaderError.errorInContainer }
-//                    folioLogger("BEFORE readEpub")
-//                    let parsedBook = try FREpubParserArchive(book: FRBook(), archive: archive).readEpubLight(epubPath: self.epubPath)
-//                    folioLogger("AFTER readEpub")
-//
-//                    self.book = parsedBook
-//                } catch {
-//                    self.errorOnLoad = true
-//                }
+         DispatchQueue.main.async {
             
             do {
-                guard let archive = Archive(url: URL(fileURLWithPath: self.epubPath), accessMode: .read, preferredEncoding: .utf8) else { throw FolioReaderError.errorInContainer }
-                
-//                    guard let archive = self.book.epubArchive else { throw FolioReaderError.errorInContainer }
-                
-                folioLogger("BEFORE readEpub")
-                let parsedBook = try FREpubParserArchive(book: self.book, archive: archive).readEpub(epubPath: self.epubPath)
-                folioLogger("AFTER readEpub")
-
-                self.book = parsedBook
-                
+                let parsedBook = try FREpubParser().readEpub(epubPath: self.epubPath, removeEpub: self.shouldRemoveEpub, unzipPath: self.unzipPath, key: self.decryptionKey)
                 self.folioReader.isReaderOpen = true
+                BookProvider.shared.currentBook = parsedBook
                 
                 // Reload data
-                DispatchQueue.main.async {
-                    if let position = self.readerConfig.savedPositionForCurrentBook {
-                        self.folioReader.structuralStyle = position.structuralStyle
-                        self.folioReader.structuralTrackingTocLevel = position.positionTrackingStyle
-                        self.folioReader.readerCenter?.currentWebViewScrollPositions[position.pageNumber - 1] = position
-                        position.takePrecedence = true
-                        self.folioReader.savedPositionForCurrentBook = position
-                    }
-
-                    let structuralTrackingTocLevel = self.folioReader.structuralTrackingTocLevel
-                    self.book.updateBundleInfo(rootTocLevel: structuralTrackingTocLevel.rawValue)
-                    
-                    //FIXME: temp fix for highlights
-                    self.tempFixForHighlights()
-                    
-                    // Add audio player if needed
-                    if self.book.hasAudio || self.readerConfig.enableTTS {
-                        self.addAudioPlayer()
-                    }
-                    
-                    self.folioReader.delegate?.folioReader?(self.folioReader, didFinishedLoading: self.book)
-                    
-                    self.centerViewController.reloadData()
-                    self.folioReader.isReaderReady = true
+                // Add audio player if needed
+                if BookProvider.shared.currentBook.hasAudio || self.readerConfig.enableTTS {
+                    self.addAudioPlayer()
                 }
+                self.centerViewController?.reloadData()
+                self.folioReader.isReaderReady = true
+                self.folioReader.delegate?.folioReader?(self.folioReader, didFinishedLoading: BookProvider.shared.currentBook)
             } catch {
                 self.errorOnLoad = true
                 self.alert(message: error.localizedDescription)
             }
-            
-            if (self.errorOnLoad == true) {
-                self.dismiss()
-            }
         }
     }
-    
+
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        if !self.folioReader.isReaderOpen {
+        if (self.errorOnLoad == true) {
+            self.dismiss()
         }
-        
-//        if (self.errorOnLoad == true) {
-//            self.dismiss()
-//        }
     }
 
-    func tempFixForHighlights() {
-        guard let highlightProvider = self.folioReader.delegate?.folioReaderHighlightProvider?(self.folioReader),
-           let bookId = (self.book.name as NSString?)?.deletingPathExtension
-        else {
-            return
-        }
-        
-        highlightProvider.folioReaderHighlight(self.folioReader, allByBookId: bookId, andPage: nil)
-            .filter {
-                $0.spineName == nil || $0.spineName.isEmpty || $0.spineName == "TODO" || $0.cfiStart?.hasPrefix("/2") == false || $0.cfiEnd?.hasPrefix("/2") == false
-            }.forEach { highlight in
-                if highlight.spineName == "TODO", highlight.page > 1 {
-                    highlight.page -= 1
-                }
-                if let resHref = self.book.spine.spineReferences[safe: highlight.page - 1]?.resource.href,
-                   let opfUrl = URL(string: self.book.opfResource.href),
-                   let resUrl = URL(string: resHref, relativeTo: opfUrl) {
-                    highlight.spineName = resUrl.absoluteString.replacingOccurrences(of: "//", with: "")
-                    while highlight.spineName.hasPrefix("/") {
-                        highlight.spineName.removeFirst()
-                    }
-                    if let cfiStart = highlight.cfiStart, cfiStart.hasPrefix("/2") == false {
-                        highlight.cfiStart = "/2\(cfiStart)"
-                    }
-                    if let cfiEnd = highlight.cfiEnd, cfiEnd.hasPrefix("/2") == false {
-                        highlight.cfiEnd = "/2\(cfiEnd)"
-                    }
-                    highlight.date += 0.001
-                }
-                print("\(#function) fixHighlight \(highlight.page) \(highlight.spineName ?? "Nil") \(highlight.cfiStart ?? "Nil") \(highlight.cfiEnd ?? "Nil") \(highlight.style ?? "Nil") \(highlight.content.prefix(10))")
-                highlightProvider.folioReaderHighlight(self.folioReader, added: highlight, completion: nil)
-            }
-    }
-    
     /**
      Initialize the media player
      */
     func addAudioPlayer() {
-        self.audioPlayer = FolioReaderAudioPlayer(withFolioReader: self.folioReader, book: self.book)
+        self.audioPlayer = FolioReaderAudioPlayer(withFolioReader: self.folioReader, book: BookProvider.shared.currentBook)
         self.folioReader.readerAudioPlayer = audioPlayer
     }
 
@@ -295,17 +215,11 @@ extension FolioReaderContainer {
             message: message,
             preferredStyle: UIAlertController.Style.alert
         )
-        let action = UIAlertAction(title: "Close", style: UIAlertAction.Style.destructive) { [weak self]
+        let action = UIAlertAction(title: "OK", style: UIAlertAction.Style.cancel) { [weak self]
             (result : UIAlertAction) -> Void in
             self?.dismiss()
         }
         alertController.addAction(action)
-        
-        let ignoreAction = UIAlertAction(title: "Ignore", style: .default) { action in
-            alertController.dismiss()
-        }
-        alertController.addAction(ignoreAction)
-        
         self.present(alertController, animated: true, completion: nil)
     }
 }

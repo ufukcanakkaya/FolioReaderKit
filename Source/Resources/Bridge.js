@@ -9,7 +9,13 @@
 var thisHighlight;
 var audioMarkClass;
 var wordsPerMinute = 180;
-var writingMode;
+
+document.addEventListener("DOMContentLoaded", function(event) {
+//    var lnk = document.getElementsByClassName("lnk");
+//    for (var i=0; i<lnk.length; i++) {
+//        lnk[i].setAttribute("onclick","return callVerseURL(this);");
+//    }
+});
 
 // Generate a GUID
 function guid() {
@@ -19,431 +25,6 @@ function guid() {
     var guid = s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     return guid.toUpperCase();
 }
-
-function removePSpace() {
-    var ps = Array.from(document.getElementsByTagName('p'));
-    var len = ps.length
-    var i = 0
-    for (; i<len; i++) {
-        var p = ps[i]
-        p.innerHTML = p.innerHTML.trim()
-    }
-}
-
-function removeBodyClass() {
-    document.body.removeAttribute("class")
-}
-
-function reParagraph() {
-    var leafNodes = getLeafNodes(document);
-    var len = leafNodes.length
-    var i = 0
-    var startWithSpaceReg = new RegExp('^\\s{2}')
-    for (; i<len; i++) {
-        var leafNode = leafNodes[i]
-        //var lines = leafNode.innerHTML.split(/\r\n|\r|\n/g)
-        var lines = leafNode.textContent.split(/\r\n|\r|\n/g)
-        var j = 0
-        var linesLen = lines.length
-        if (linesLen > 10 || leafNode.textContent.length > 50 || leafNode.parentNode.tagName == "DIV") {
-            var para = ""
-            var pNodes = []
-            for (; j<linesLen; j++) {
-                if (lines[j].match(startWithSpaceReg)) {
-                    if (para.length > 0) {
-                        var pNode = document.createElement('p')
-                        var text = document.createTextNode(para)
-                        pNode.appendChild(text)
-                        pNodes.push(pNode)
-                    }
-                    para = lines[j]
-                } else {
-                    para = para + lines[j]
-                }
-            }
-            if (para.length > 0) {
-                var pNode = document.createElement('p')
-                var text = document.createTextNode(para)
-                pNode.appendChild(text)
-                pNodes.push(pNode)
-            }
-            if (pNodes.length > 0) {
-                //alert(leafNode.textContent.split(/\r\n|\r|\n/g).length)
-                //alert(pNodes.length)
-                //leafNode.innerHTML = ""
-                leafNode.removeChild(leafNode.firstChild)
-                var k = 0
-                var pNodesLen = pNodes.length
-                for(; k<pNodesLen; k++) {
-                    leafNode.appendChild(pNodes[k])
-                }
-            }
-        }
-    }
-}
-
-function getLeafNodes(master) {
-    var nodes = Array.prototype.slice.call(master.getElementsByTagName("*"), 0);
-    var leafNodes = nodes.filter(function(elem) {
-        if (elem.hasChildNodes()) {
-            // see if any of the child nodes are elements
-            for (var i = 0; i < elem.childNodes.length; i++) {
-                if (elem.childNodes[i].nodeType == 1) {
-                    // there is a child element, so return false to not include
-                    // this parent element
-                    return false;
-                }
-            }
-        }
-        return true;
-    });
-    return leafNodes;
-}
-/**
- * Get an array containing the text nodes within a DOM node.
- *
- * From http://stackoverflow.com/a/4399718/843621
- *
- * For example get all text nodes from <body>
- *
- * var body = document.getElementsByTagName('body')[0];
- *
- * getTextNodesIn(body);
- *
- * @param node Any DOM node.
- * @param [includeWhitespaceNodes=false] Whether to include whitespace-only nodes.
- * @return An array containing TextNodes.
- */
-
-function getTextNodesIn(node, includeWhitespaceNodes) {
-    var textNodes = [], whitespace = /^\s*$/;
-
-    function getTextNodes(node) {
-        if (node.nodeType == 3) {
-            if (includeWhitespaceNodes || !whitespace.test(node.nodeValue)) {
-                textNodes.push(node);
-            }
-        } else {
-            for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-                getTextNodes(node.childNodes[i]);
-            }
-        }
-    }
-
-    getTextNodes(node);
-    return textNodes;
-}
-
-function getTextAndImgNodesIn(node, includeWhitespaceNodes) {
-    var textNodes = [], whitespace = /^\s*$/;
-
-    function getTextAndImgNodes(node) {
-        if (node.nodeType == 3 || (node.nodeType == 1 && node.nodeName == "IMG")) {
-            if (includeWhitespaceNodes || !whitespace.test(node.nodeValue)) {
-                textNodes.push(node);
-            }
-        } else {
-            for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-                getTextAndImgNodes(node.childNodes[i]);
-            }
-        }
-    }
-
-    getTextAndImgNodes(node);
-    return textNodes;
-}
-
-function removeOuterTable() {
-    // table references the table DOM element
-    var tables = Array.from(document.getElementsByTagName('table'));
-    var handled = 0;
-    while (tables.length > 0) {
-        var table = tables[0];
-        //alert(table.innerHTML);
-//        if (!table.hasAttribute("width")) {
-//            break
-//        }
-        var keep = document.createDocumentFragment(),
-        tds = table.getElementsByTagName('td'),
-        td, i, l;
-
-        // alert("after keep");
-        
-        while (tds.length > 0) {
-            //alert(i + " in " + tds.length)
-            td = tds[0];
-            //alert(td.innerHTML)
-            while(td.firstChild) {
-                var pArray = Array.from(td.getElementsByTagName('p'))
-                if (pArray.length == 0 && td.firstChild.textContent.length > 1) {
-                    var pNode = document.createElement('p')
-                    pNode.appendChild(td.firstChild)
-                    keep.appendChild(pNode)
-                    //alert(pNode.innerHTML)
-                } else if (td.firstChild.tagName != "BR") {
-                    //alert(td.firstChild.tagName)
-                    keep.appendChild(td.firstChild);
-                } else {
-                    td.removeChild(td.firstChild)
-                }
-            }
-            //alert("after while(td.firstChild)")
-            
-            td.parentNode.removeChild(td)
-            tds = table.getElementsByTagName('td')
-        }
-        
-        var tableParent = table.parentNode
-        tableParent.insertBefore(keep, table);
-        tableParent.removeChild(table);
-        
-        // alert(tableParent.innerHTML)
-        
-        tables = Array.from(document.getElementsByTagName('table'));
-        //alert(tables.length);
-    }
-    return handled
-}
-
-function tweakStyleOnly() {
-    var tables = [...document.getElementsByTagName('table')]
-    tables.forEach( (table) => {
-        table.removeAttribute("width")
-        table.removeAttribute("class")
-        table.setAttribute("border", "0")
-    } )
-    var tds = [...document.getElementsByTagName('td')]
-    tds.forEach((item) => {
-        item.removeAttribute("class")
-    })
-    var fonts = [...document.getElementsByTagName('font')]
-    fonts.forEach((item) => {
-        item.removeAttribute("size")
-    })
-    var imgs = [...document.getElementsByTagName('img')]
-    imgs.forEach((item) => {
-        if (item.parentNode.tagName != "P" && item.parentNode.tagName != "DIV" ) {
-            return
-        }
-        if (item.parentNode.innerText.trim().length > 0 && (item.previousSibling != null && item.nextSibling != null)) {
-            return
-        }
-        item.removeAttribute("height")
-        item.removeAttribute("width")
-        addClass(item, "folioImg")
-    })
-}
-
-function injectHighlights(highlightJSONDataEncodedArray) {
-    var sHighlightJsonArray = window.atob(highlightJSONDataEncodedArray);
-    var oHighlightArray = JSON.parse(sHighlightJsonArray);
-    
-    let results = new Array()
-    oHighlightArray.forEach( (oHighlight) => {
-        try {
-            var id = oHighlight.highlightId
-            var elem = document.getElementById(id)
-            if (elem) {
-                window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlights exception duplicate " + JSON.stringify(oHighlight))
-            }
-            var result = injectHighlight(oHighlight)
-            window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlights result " + result)
-            results.push(result)
-        } catch (e) {
-            window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlights exception " + e + " " + JSON.stringify(oHighlight))
-            results.push(JSON.stringify({id: oHighlight.highlightId, top: 0, left: 0, bottom: 0, right: 0, err: e.stack}))
-        }
-    } )
-    
-    return JSON.stringify(results)
-}
-
-function injectHighlight(oHighlight) {
-    oHighlight.content = decodeURIComponent(oHighlight.contentEncoded)
-    oHighlight.contentPost = decodeURIComponent(oHighlight.contentPostEncoded)
-    oHighlight.contentPre = decodeURIComponent(oHighlight.contentPreEncoded)
-
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight oHighlight " + JSON.stringify(oHighlight))
-    
-    var cfiStart = "epubcfi(" + oHighlight.cfiStart + ")"
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight cfiStart " + cfiStart + " " + encodeURI(cfiStart))
-    
-    var startNode = window.EPUBcfi.getTargetElementWithPartialCFI(encodeURI(cfiStart), document, [], ["highlight"], []).get(0)
-    var startTextInfo = window.EPUBcfi.getTextTerminusInfoWithPartialCFI(encodeURI(cfiStart), document, [], ["highlight"], [])
-    var startTextInfoOffset = startTextInfo.textOffset
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight startNode " + startNode + " " + startNode.textContent)
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight startTextInfo " + startTextInfo + " " + JSON.stringify(startTextInfo))
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight startTextInfo " + startTextInfo.textNode.textContent)
-
-    var cfiEnd   = "epubcfi(" + oHighlight.cfiEnd + ")"
-    var endNode   = window.EPUBcfi.getTargetElementWithPartialCFI(encodeURI(cfiEnd),   document, [], ["highlight"], []).get(0)
-    var endTextInfo = window.EPUBcfi.getTextTerminusInfoWithPartialCFI(encodeURI(cfiEnd), document, [], ["highlight"], [])
-    var endTextInfoOffset = endTextInfo.textOffset
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight endNode " + endNode + " " + endNode.textContent)
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight endTextInfo " + endTextInfo + " " + JSON.stringify(endTextInfo))
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight endTextInfo " + endTextInfo.textNode.textContent)
-    
-    var curTextLengthUptoStartNode = 0    //for locating actual startNode
-    while (curTextLengthUptoStartNode + startNode.textContent.length <= startTextInfoOffset) {
-        curTextLengthUptoStartNode += startNode.textContent.length
-        startNode = startNode.nextSibling
-        if (startNode == null)
-            break
-    }
-    if (startNode == null) {
-        return "startOffset exceeding content length"
-    }
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight startNodeNew " + startNode + " " + startNode.textContent)
-    
-    var curTextLengthUptoEndNode = 0    //for locating actual endNode
-    while (curTextLengthUptoEndNode + endNode.textContent.length < endTextInfoOffset) {
-        curTextLengthUptoEndNode += endNode.textContent.length
-        endNode = endNode.nextSibling
-        if (endNode == null)
-            break;
-    }
-    if (endNode == null) {
-        return "endOffset exceeding content length"
-    }
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight endNodeNew " + endNode + " " + endNode.textContent)
-    
-    var range = document.createRange()
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage(`injectHighlight beforeSetStart ${startTextInfoOffset} ${curTextLengthUptoStartNode} ${startNode.textContent}`)
-    range.setStart(startNode, startTextInfoOffset - curTextLengthUptoStartNode)
-    range.setEnd(endNode, endTextInfoOffset - curTextLengthUptoEndNode)
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight range " + range)
-
-    // check highlight overlapping
-    const highlightItems = [...document.getElementsByTagName("highlight")];
-    for (i=0; i<highlightItems.length; i++) {
-        if (range.intersectsNode(highlightItems[i])) {
-            return "Overlapping highlights are not supported"
-        }
-    }
-//    var overlapping = false
-//    highlightItems.forEach((item) => {
-//        window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight highlightItem " + item.outerHTML)
-//        var textNodes = getTextNodesIn(item)
-//        for (i=0; i<textNodes.length; i++) {
-//            overlapping = overlapping || range.intersectsNode(textNodes[i])
-//        }
-//    });
-//    if (overlapping) {
-//        return "Overlapping highlights are not supported"
-//    }
-    if (startNode != endNode) {
-        var ancestor = range.commonAncestorContainer
-        var textNodes = getTextNodesIn(ancestor)
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight ancestor " + ancestor.textContent)
-
-        var id_seq = 0
-        for (i=0; i<textNodes.length; i++) {
-            var intersects = range.intersectsNode(textNodes[i])
-            window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight compareMask " + intersects + " " + textNodes[i].textContent)
-            if (intersects) {
-                var subrange = document.createRange()
-                if (textNodes[i] == startNode) {
-                    subrange.setStart(startNode, startTextInfoOffset - curTextLengthUptoStartNode)
-                    subrange.setEnd(startNode, startNode.textContent.length)
-                } else if (textNodes[i] == endNode) {
-                    subrange.setStart(endNode, 0)
-                    subrange.setEnd(endNode, endTextInfoOffset - curTextLengthUptoEndNode)
-                } else {
-                    subrange.setStart(textNodes[i], 0)
-                    subrange.setEnd(textNodes[i], textNodes[i].textContent.length)
-                }
-                var selectionContents = subrange.extractContents();
-                var elm = document.createElement("highlight");
-                var id = oHighlight.highlightId
-                
-                elm.appendChild(selectionContents);
-                elm.setAttribute("id", id + "." + id_seq.toString());
-                elm.setAttribute("onclick","callHighlightURL(this);");
-                elm.setAttribute("class", oHighlight.style);
-                
-                subrange.insertNode(elm);
-                window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight subrange " + subrange + " " + elm)
-                id_seq ++
-            }
-        }
-    } else {
-        var selectionContents = range.extractContents();
-        var elm = document.createElement("highlight");
-        var id = oHighlight.highlightId
-        
-        elm.appendChild(selectionContents);
-        elm.setAttribute("id", id);
-        elm.setAttribute("onclick","callHighlightURL(this);");
-        elm.setAttribute("class", oHighlight.style);
-        
-        range.insertNode(elm);
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight finished " + range + " " + elm)
-    }
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("injectHighlight getHTML " + getHTML());
-    
-    let startNodeBounding = startNode.parentNode.getBoundingClientRect()
-    
-    return JSON.stringify({id: oHighlight.highlightId, top: startNodeBounding.top, left: startNodeBounding.left, bottom: startNodeBounding.bottom, right: startNodeBounding.right, err: ""})
-}
-
-function relocateHighlights(highlightJSONDataEncodedArray) {
-    var sHighlightJsonArray = window.atob(highlightJSONDataEncodedArray);
-    var oHighlightArray = JSON.parse(sHighlightJsonArray);
-    
-    let results = new Array()
-    oHighlightArray.forEach( (oHighlight) => {
-        try {
-            var id = oHighlight.highlightId
-            var elem = document.getElementById(id)
-            if (elem) {
-                window.webkit.messageHandlers.FolioReaderPage.postMessage("relocateHighlights exception duplicate " + JSON.stringify(oHighlight))
-                results.push({id: oHighlight.highlightId, top: 0, left: 0, bottom: 0, right: 0, err: "duplicate id"})
-            } else {
-                var result = relocateHighlight(oHighlight)
-                window.webkit.messageHandlers.FolioReaderPage.postMessage("relocateHighlights result " + result)
-                results.push(result)
-            }
-        } catch (e) {
-            window.webkit.messageHandlers.FolioReaderPage.postMessage("relocateHighlights exception " + e + " " + JSON.stringify(oHighlight))
-            results.push({id: oHighlight.highlightId, top: 0, left: 0, bottom: 0, right: 0, err: e.message + "\n" + e.stack})
-        }
-    } )
-    
-    return JSON.stringify(results)
-}
-
-function relocateHighlight(oHighlight) {
-    oHighlight.content = decodeURIComponent(oHighlight.contentEncoded)
-    oHighlight.contentPost = decodeURIComponent(oHighlight.contentPostEncoded)
-    oHighlight.contentPre = decodeURIComponent(oHighlight.contentPreEncoded)
-
-    let allVisible = getTextNodesIn(document.body, false).filter(visible)
-    let startNode;
-    let indexOfHighlightContent;
-    for(const textNode of allVisible) {
-        indexOfHighlightContent = textNode.textContent.indexOf(oHighlight.content)
-        if (indexOfHighlightContent >= 0) {
-            startNode = textNode
-            break
-        }
-    }
-    
-    if (startNode) {
-        let range = document.createRange()
-        range.setStart(startNode, indexOfHighlightContent)
-        range.setEnd(startNode, indexOfHighlightContent + oHighlight.content.length)
-        
-        let result = highlightStringCFIByRange(oHighlight.style, oHighlight.noteForHighlight && oHighlight.noteForHighlight.length > 0, range)
-        let startNodeBounding = startNode.parentNode.getBoundingClientRect()
-        
-        return {id: oHighlight.highlightId, top: startNodeBounding.top, left: startNodeBounding.left, bottom: startNodeBounding.bottom, right: startNodeBounding.right, err: result}
-    } else {
-        return {id: oHighlight.highlightId, top: 0, left: 0, bottom: 0, right: 0, err: "connot find content"}
-    }
-}
-
 
 // Get All HTML
 function getHTML() {
@@ -465,12 +46,7 @@ function removeClass(ele,cls) {
     ele.className=ele.className.replace(reg,' ');
   }
 }
-function removeClasses(ele,cls) {
-  var reg = new RegExp('(\\s+|^)'+cls+'(\\s+|$)');
-  while (hasClass(ele,cls)) {
-    ele.className=ele.className.replace(reg,' ');
-  }
-}
+
 // Font name class
 function setFontName(cls) {
     var elm = document.documentElement;
@@ -491,27 +67,6 @@ function nightMode(enable) {
     }
 }
 
-// Toggle night mode
-function themeMode(mode) {
-    var elm = document.documentElement;
-    removeClass(elm, "nightMode");
-    removeClass(elm, "serpiaMode");
-    removeClass(elm, "greenMode");
-    removeClass(elm, "darkMode");
-    if( mode == 1) {
-        addClass(elm, "serpiaMode");
-    }
-    if( mode == 2) {
-        addClass(elm, "greenMode");
-    }
-    if( mode == 3) {
-        addClass(elm, "darkMode");
-    }
-    if( mode == 4) {
-        addClass(elm, "nightMode");
-    }
-}
-
 // Set font size
 function setFontSize(cls) {
     var elm = document.documentElement;
@@ -527,279 +82,220 @@ function setFontSize(cls) {
  *	Native bridge Highlight text
  */
 
-/*deprecated*/
+function getDOM(node, offset) {
+    var tags = []
+    while (node.nodeType != Node.ELEMENT_NODE) {
+        var index = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+        tags.push(index);
+        node = node.parentNode;
+    }
+    while (node != document.body) {
+        var index = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+        tags.push(index);
+        node = node.parentElement;
+    }
+    
+    var result = tags.reverse();
+    result.push(offset);
+    console.log(result);
+    
+    return tags.join(",");
+}
+
+function recreateHighlight(id, style, onClickAction, startLocation, endLocation) {
+    function recreateDOMFromString(str) {
+        var dom = str.split(",").map(Number);
+        var offset = dom.pop();
+        var iterator = document.body;
+        for (var i = 0; i < dom.length; i++) {
+            iterator = iterator.childNodes[dom[i]];
+        }
+        return [iterator, offset];
+    }
+    var startTuple = recreateDOMFromString(startLocation);
+    var startContainer = startTuple[0];
+    var startOffset = startTuple[1];
+    var endTuple = recreateDOMFromString(endLocation);
+    var endContainer = endTuple[0];
+    var endOffset = endTuple[1];
+    
+    var commonAncestorContainer = startContainer;
+    do {
+        if (commonAncestorContainer.contains(endContainer)) {
+            break;
+        }
+        commonAncestorContainer = commonAncestorContainer.parentNode;
+    } while (commonAncestorContainer != document.body);
+    highlightRange(id, style, onClickAction, startContainer, startOffset, endContainer, endOffset, commonAncestorContainer);
+}
+
 function highlightString(style) {
     var range = window.getSelection().getRangeAt(0);
-    var startOffset = range.startOffset;
-    var endOffset = range.endOffset;
-    var selectionContents = range.extractContents();
-    var elm = document.createElement("highlight");
+    var startLocation = getDOM(range.startContainer, range.startOffset);
+    var endLocation = getDOM(range.endContainer, range.endOffset);
     var id = guid();
+    var onClickAction = "callHighlightURL(this);";
     
-    elm.appendChild(selectionContents);
-    elm.setAttribute("id", id);
-    elm.setAttribute("onclick","callHighlightURL(this);");
-    elm.setAttribute("class", style);
-    
-    range.insertNode(elm);
-    thisHighlight = elm;
-    
+    var result = highlightRange(id, style, onClickAction, range.startContainer, range.startOffset, range.endContainer, range.endOffset, range.commonAncestorContainer);
+    var elm = result[0];
+    var content = result[1];
+    addSelectionRange(result[2]);
     var params = [];
-    params.push({id: id, rect: getRectForSelectedText(elm), startOffset: startOffset.toString(), endOffset: endOffset.toString()});
+    params.push({id: id, rect: getRectForSelectedText(elm), startLocation: startLocation, endLocation: endLocation, content: content});
     
     return JSON.stringify(params);
 }
 
-function highlightStringCFI(style, withNote) {
+function highlightStringWithNote(style) {
     var range = window.getSelection().getRangeAt(0);
-    return highlightStringCFIByRange(style, withNote, range)
-}
-    
-function highlightStringCFIByRange(style, withNote, range) {
-    var startOffset = range.startOffset;
-    var endOffset = range.endOffset;
-
-    var startContainer = range.startContainer
-    var startContainerText = startContainer.textContent
-    
-    var endContainer = range.endContainer
-    var endContainerText = endContainer.textContent
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI startContainerText " + startContainerText);
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI endContainerText " + endContainerText);
-
-    //Text Location Assertion
-    var precedingStartOffset = startOffset - 20
-    if (precedingStartOffset < 0) {
-        precedingStartOffset = 0
-    }
-    var precedingText = startContainerText.substring(precedingStartOffset, startOffset)
-    
-    var followingEndOffset = endOffset + 20
-    if (followingEndOffset > endContainerText.length) {
-        followingEndOffset = endContainerText.length
-    }
-    var followingText = endContainerText.substring(endOffset, followingEndOffset)
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI precedingText " + precedingText);
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI followingText " + followingText);
-
-    var tmpNode = startContainer.previousSibling
-    var prevHighlightLengthStart = 0
-    while (tmpNode != null) {
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI tmpNodeName " + tmpNode.nodeName);
-
-        if (tmpNode.nodeName == "HIGHLIGHT") {
-            prevHighlightLengthStart += tmpNode.textContent.length
-        } else if (tmpNode.nodeName != "#text") {
-            break
-        }
-        tmpNode = tmpNode.previousSibling
-    }
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI prevHighlightLengthStart " + prevHighlightLengthStart);
-
-    var tmpNode = endContainer.previousSibling
-    var prevHighlightLengthEnd = 0
-    while (tmpNode != null) {
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI tmpNodeName " + tmpNode.nodeName);
-
-        if (tmpNode.nodeName == "HIGHLIGHT") {
-            prevHighlightLengthEnd += tmpNode.textContent.length
-        } else if (tmpNode.nodeName != "#text") {
-            break
-        }
-        tmpNode = tmpNode.previousSibling
-    }
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI prevHighlightLengthEnd " + prevHighlightLengthEnd);
-    
-    var cfiStart = window.EPUBcfi.generateCharacterOffsetCFIComponent(
-                        startContainer,startOffset,[],["highlight"],[])
-    var cfiEnd = window.EPUBcfi.generateCharacterOffsetCFIComponent(
-                        endContainer,endOffset,[],["highlight"],[])
+    var startLocation = getDOM(range.startContainer, range.startOffset);
+    var endLocation = getDOM(range.endContainer, range.endOffset);
     var id = guid();
+    var onClickAction = "callHighlightWithNoteURL(this);";
     
-    if (withNote) {
+    var result = highlightRange(id, style, onClickAction, range.startContainer, range.startOffset, range.endContainer, range.endOffset, range.commonAncestorContainer);
+    var elm = result[0];
+    var content = result[1];
+    addSelectionRange(result[2]);
+    var params = [];
+    params.push({id: id, rect: getRectForSelectedText(elm), startLocation: startLocation, endLocation: endLocation, content: content});
+    
+    return JSON.stringify(params);
+}
+
+function highlightRange(id, style, onClickAction, startContainer, startOffset, lastContainer, endOffset, commonAncestorContainer) {
+    var ranges = [];
+    var body = document.body;
+    var iterContainer = startContainer;
+    
+    // special case: same node/element
+    if (iterContainer == lastContainer) {
+        var range = document.createRange();
+        range.setStart(iterContainer, startOffset);
+        range.setEnd(iterContainer, endOffset);
+        ranges.push(range);
+    } else {
+        var isSelectingFirstNode = true;
+        // Select all nodes/elements until endContainer is targeted
+        do {
+            if (iterContainer.contains(lastContainer)) {
+                // breaking case, range.endContainer found
+                if (iterContainer == lastContainer) {
+                    break;
+                } else if (iterContainer.childNodes.length > 0) {
+                    iterContainer = iterContainer.childNodes[0];
+                }
+                continue;
+            }
+            
+            if (isSelectingFirstNode) {
+                // 1. special treament for the first node
+                isSelectingFirstNode = false;
+                var range = document.createRange();
+                range.setStart(iterContainer, startOffset);
+                range.setEnd(iterContainer, iterContainer.length);
+                ranges.push(range);
+            } else {
+                if (iterContainer.nodeType == Node.ELEMENT_NODE) {
+                    for (var i = 0; i < iterContainer.childNodes.length; i++) {
+                        var range = document.createRange();
+                        range.selectNode(iterContainer.childNodes[i]);
+                        ranges.push(range);
+                    }
+                } else if (iterContainer.nodeType == Node.TEXT_NODE) {
+                    var range = document.createRange();
+                    range.selectNode(iterContainer);
+                    ranges.push(range);
+                }
+            }
+            
+            while (iterContainer != commonAncestorContainer) {
+                if (iterContainer.nextSibling != null) {
+                    iterContainer = iterContainer.nextSibling;
+                    break;
+                } else {
+                    iterContainer = iterContainer.parentNode;
+                }
+            };
+        } while (true);
+        
+        // 3. select all nodes until the last Element
+        var range = document.createRange();
+        range.setStart(iterContainer, 0);
+        range.setEnd(iterContainer, endOffset);
+        ranges.push(range);
+    }
+    
+    var text = [];
+    var thisHighlightHasSet = false;
+    for (var i = 0; i < ranges.length; i++) {
+        var range = ranges[i];
+        text.push(range.toString());
+        if (range.toString().trim() == "") {
+            continue;
+        }
         var selectionContents = range.extractContents();
         var elm = document.createElement("highlight");
         
         elm.appendChild(selectionContents);
         elm.setAttribute("id", id);
-        elm.setAttribute("onclick","callHighlightWithNoteURL(this);");
+        elm.setAttribute("onclick", onClickAction);
         elm.setAttribute("class", style);
         
         range.insertNode(elm);
-        thisHighlight = elm;
-        
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI thisHighlight " + thisHighlight.outerHTML);
+        if (!thisHighlightHasSet) {
+            thisHighlight = elm;
+            thisHighlightHasSet = true;
+        }
     }
-    
-    var params = [];
-    params.push({
-        id: guid(),
-        startOffset: startOffset.toString(),
-        endOffset: endOffset.toString(),
-        content: range.cloneContents().textContent,
-        contentPre: precedingText,
-        contentPost: followingText,
-        cfiStart: cfiStart,
-        cfiEnd: cfiEnd,
-        prevHighlightLengthStart: prevHighlightLengthStart.toString(),
-        prevHighlightLengthEnd: prevHighlightLengthEnd.toString()
-    });
-    
-    return JSON.stringify(params);
+    return [thisHighlight, text.join(""), ranges];
 }
 
-/*deprecated*/
-function highlightStringWithNoteCFI(style) {
-    var range = window.getSelection().getRangeAt(0);
-    var startOffset = range.startOffset;
-    var endOffset = range.endOffset;
-
-    var startContainer = range.startContainer
-    var startContainerText = startContainer.textContent
-    
-    var endContainer = range.endContainer
-    var endContainerText = endContainer.textContent
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI startContainerText " + startContainerText);
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI endContainerText " + endContainerText);
-
-    //Text Location Assertion
-    var precedingStartOffset = startOffset - 20
-    if (precedingStartOffset < 0) {
-        precedingStartOffset = 0
+function addSelectionRange(ranges) {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    for (var i = 0; i < ranges.length; i++) {
+        selection.addRange(ranges[i]);
     }
-    var precedingText = startContainerText.substring(precedingStartOffset, startOffset)
-    
-    var followingEndOffset = endOffset + 20
-    if (followingEndOffset > endContainerText.length) {
-        followingEndOffset = endContainerText.length
-    }
-    var followingText = endContainerText.substring(endOffset, followingEndOffset)
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI precedingText " + precedingText);
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightStringCFI followingText " + followingText);
-
-    var cfiStart = window.EPUBcfi.generateCharacterOffsetCFIComponent(startContainer,startOffset,[],["highlight"],[])
-    var cfiEnd = window.EPUBcfi.generateCharacterOffsetCFIComponent(endContainer,endOffset,[],["highlight"],[])
-    
-    var selectionContents = range.extractContents();
-    var elm = document.createElement("highlight");
-    var id = guid();
-    
-    elm.appendChild(selectionContents);
-    elm.setAttribute("id", id);
-    elm.setAttribute("onclick","callHighlightWithNoteURL(this);");
-    elm.setAttribute("class", style);
-    
-    range.insertNode(elm);
-    thisHighlight = elm;
-    
-    var params = [];
-    params.push({
-        id: id,
-        rect: getRectForSelectedText(elm),
-        startOffset: startOffset.toString(),
-        endOffset: endOffset.toString(),
-        content: elm.textContent,
-        contentPre: precedingText,
-        contentPost: followingText,
-        cfiStart: cfiStart,
-        cfiEnd: cfiEnd
-    });
-    
-    return JSON.stringify(params);
 }
 
-/*deprecated*/
-function highlightStringWithNote(style) {
-    var range = window.getSelection().getRangeAt(0);
-    var startOffset = range.startOffset;
-    var endOffset = range.endOffset;
-    var selectionContents = range.extractContents();
-    var elm = document.createElement("highlight");
-    var id = guid();
-    
-    elm.appendChild(selectionContents);
-    elm.setAttribute("id", id);
-    elm.setAttribute("onclick","callHighlightWithNoteURL(this);");
-    elm.setAttribute("class", style);
-    
-    range.insertNode(elm);
-    thisHighlight = elm;
-    
+function getRectForThisHighlight() {
     var params = [];
-    params.push({id: id, rect: getRectForSelectedText(elm), startOffset: startOffset.toString(), endOffset: endOffset.toString()});
-    
+    params.push({rect: getRectForSelectedText(thisHighlight)});
     return JSON.stringify(params);
 }
 
 function getHighlightId() {
-    var id = thisHighlight.id
-    var indexOfDot = id.indexOf(".")
-    if (indexOfDot > 0) {
-        id = id.substring(0, indexOfDot)
-    }
-    return id;
+    return thisHighlight.id;
 }
 
 // Menu colors
 function setHighlightStyle(style) {
-    var id = thisHighlight.id
-    var indexOfDot = id.indexOf(".")
-    if (indexOfDot == -1) {
-        thisHighlight.className = style;
-    } else {
-        id = id.substring(0, indexOfDot)
-        const highlightItems = document.querySelectorAll('[id^="' + id + '."]');
-        highlightItems.forEach(function(item) {
-          item.className = style;
-        });
+    var highlightsWithSameId = document.querySelectorAll("highlight[id=\'" + thisHighlight.id + "\']")
+    for (var i = 0; i < highlightsWithSameId.length; i++) {
+        highlightsWithSameId[i].className = style;
     }
-    
-    return id;
+    return thisHighlight.id;
 }
 
 function removeThisHighlight() {
-    var id = thisHighlight.id
-    var indexOfDot = id.indexOf(".")
-    if (indexOfDot == -1) {
-        thisHighlight.outerHTML = thisHighlight.innerHTML;
-    } else {
-        id = id.substring(0, indexOfDot)
-        removeHighlightById(id)
+    var highlightsWithSameId = document.querySelectorAll("highlight[id=\'" + thisHighlight.id + "\']")
+    for (var i = 0; i < highlightsWithSameId.length; i++) {
+        highlightsWithSameId[i].outerHTML = highlightsWithSameId[i].innerHTML;
     }
-    return id
+    return thisHighlight.id;
 }
 
 function removeHighlightById(elmId) {
-    var elm = document.getElementById(elmId);
-    if (elm != null) {
-        elm.outerHTML = elm.innerHTML;
-    } else {
-        const highlightItems = document.querySelectorAll('[id^="' + elmId + '."]');
-        highlightItems.forEach(function(item) {
-          item.outerHTML = item.innerHTML;
-        });
+    var highlightsWithSameId = document.querySelectorAll("highlight[id=\'" + elmId + "\']")
+    for (var i = 0; i < highlightsWithSameId.length; i++) {
+        highlightsWithSameId[i].outerHTML = highlightsWithSameId[i].innerHTML;
     }
-    return elmId
+    return elm.id;
 }
 
 function getHighlightContent() {
-    var id = thisHighlight.id
-    var indexOfDot = id.indexOf(".")
-    if (indexOfDot == -1) {
-        return thisHighlight.textContent
-    } else {
-        id = id.substring(0, indexOfDot)
-        var text = ""
-        const highlightItems = document.querySelectorAll('[id^="' + id + '."]');
-        highlightItems.forEach(function(item) {
-          text += item.textContent
-        });
-        return text
-    }
+    return thisHighlight.textContent
 }
 
 function getBodyText() {
@@ -808,25 +304,7 @@ function getBodyText() {
 
 // Method that returns only selected text plain
 var getSelectedText = function() {
-    var selObj = window.getSelection()
-    var selRange = selObj.getRangeAt(0)
-    var selContainer = selRange.startContainer
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("Selection Container " + selContainer.outerHTML)
-
-    return selObj.toString();
-}
-
-var getSelectedTextCFI = function() {
-    var selObj = window.getSelection()
-    var selRange = selObj.getRangeAt(0)
-    var selContainer = selRange.startContainer
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("Selection Container " + selContainer.outerHTML)
-
-    var selContainerCFI = window.EPUBcfi.generateElementCFIComponent(selContainer.parentNode,[],["highlight"],[])
-    return JSON.stringify({
-        sel: selObj.toString(),
-        cfi: selContainerCFI
-    })
+    return window.getSelection().toString();
 }
 
 // Method that gets the Rect of current selected text
@@ -838,7 +316,7 @@ var getRectForSelectedText = function(elm) {
     return "{{" + rect.left + "," + rect.top + "}, {" + rect.width + "," + rect.height + "}}";
 }
 
-// Method that call that a hightlight was clicked
+// Method that call that a highlight was clicked
 // with URL scheme and rect informations
 var callHighlightURL = function(elm) {
 	event.stopPropagation();
@@ -849,7 +327,7 @@ var callHighlightURL = function(elm) {
     window.location = URLBase + encodeURIComponent(currentHighlightRect);
 }
 
-// Method that call that a hightlight with note was clicked
+// Method that call that a highlight with note was clicked
 // with URL scheme and rect informations
 var callHighlightWithNoteURL = function(elm) {
     event.stopPropagation();
@@ -861,23 +339,9 @@ var callHighlightWithNoteURL = function(elm) {
 }
 
 // Reading time
-function getReadingTime(lang) {
+function getReadingTime() {
     var text = document.body.innerText;
     var totalWords = text.trim().split(/\s+/g).length;
-    if (text.length > totalWords * 20) {
-        var denominator = 4;
-        switch (lang) {
-            case "zh":
-                denominator = 2.5;
-                break;
-            case "ja":
-                denominator = 3;
-                break;
-            default:
-                break;
-        }
-        totalWords = text.length / denominator
-    }
     var wordsPerSecond = wordsPerMinute / 60; //define words per second based on words per minute
     var totalReadingTimeSeconds = totalWords / wordsPerSecond; //define total reading time in seconds
     var readingTimeMinutes = Math.round(totalReadingTimeSeconds / 60);
@@ -895,143 +359,11 @@ var getAnchorOffset = function(target, horizontal) {
         elem = document.getElementsByName(target)[0];
     }
     
-    if (!elem && target.startsWith("epubcfi(")) {
-        var reg = new RegExp("epubcfi\\(/\\d+/\\d+")
-        var reg2 = new RegExp("/\\d+:\\d+\\)$")
-        var partialCFI = target.replace(reg, "epubcfi(")
-        
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("getAnchorOffset partialCFI " + partialCFI);
-        
-        try {
-//            for (var i=0; i<40; i++) {
-//                partialCFI = `epubcfi(/4/4/2/2/4/${i*2+1}:0)`
-//                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI textInfo ${partialCFI}`);
-//                const textInfo = window.EPUBcfi.getTextTerminusInfoWithPartialCFI(encodeURI(partialCFI), document, [], [], [])
-//                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI textInfo ${textInfo.textNode.textContent.trim()} ${textInfo.textOffset}`);
-//            }
-            const textInfo = window.EPUBcfi.getTextTerminusInfoWithPartialCFI(encodeURI(partialCFI), document, [], [], [])
-            window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI textInfo ${textInfo.textNode.textContent.trim()} ${textInfo.textOffset}`);
-            
-            if (textInfo && textInfo.textNode) {
-                let range = document.createRange()
-                range.setStart(textInfo.textNode, textInfo.textOffset)
-                range.setEnd(textInfo.textNode, textInfo.textOffset+1)
-                
-                let rangeClientBounds = range.getBoundingClientRect()
-                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI rangeClientBounds ${rangeClientBounds.left}:${rangeClientBounds.right}:${rangeClientBounds.top}:${rangeClientBounds.bottom} scrollX=${window.scrollX} scrollY=${window.scrollY} rangeText=${range.toString().trim()}`);
-                
-                if (writingMode == "vertical-rl") {
-                    return -(rangeClientBounds.right + window.scrollX);
-                }
-                
-                if (horizontal) {
-                    //return document.body.clientWidth * Math.floor((rangeClientBounds.right + window.scrollX) / document.body.clientWidth);
-                    return (rangeClientBounds.right + window.scrollX);
-                }
-                
-                return rangeClientBounds.top + window.scrollY;
-            }
-        } catch (e) {
-            window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI textInfo error ${e}`);
-        }
-        
-        try {
-            elem = window.EPUBcfi.getTargetElementWithPartialCFI(encodeURI(partialCFI), document, [], [], []).get(0)
-            while (elem && elem.nodeType == 3) {
-                elem = elem.parentNode
-            }
-        } catch(e) {
-            window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI error whole ${e}`);
-        }
-        
-        if (!elem) {
-            partialCFI = partialCFI.replace(reg2, ")")
-            try {
-                elem = window.EPUBcfi.getTargetElementWithPartialCFI(encodeURI(partialCFI), document, [], [], []).get(0)
-            } catch(e) {
-                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI error prefix ${e}`);
-            }
-        }
-        
-        if (elem) {
-            const clientBounds = elem.getBoundingClientRect()
-            window.webkit.messageHandlers.FolioReaderPage.postMessage(`getAnchorOffset partialCFI bounds prefix top=${clientBounds.top}}`);
-        }
-    }
-    
-    if (!elem) {
-        return 0
-    }
-    
-    if (writingMode == "vertical-rl") {
-        return elem.offsetLeft + elem.offsetWidth;
-    }
-    
     if (horizontal) {
         return document.body.clientWidth * Math.floor(elem.offsetTop / window.innerHeight);
     }
     
     return elem.offsetTop;
-}
-
-var getClickAnchorOffset = function(target) {
-    var elems = document.getElementsByTagName("a");
-    
-    var elem;
-    for (var i=0; i<elems.length; i++) {
-        var rect = elems[i].getBoundingClientRect();
-        var visible = (rect.top >= 0 && rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /* or $(window).height() */
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth) /* or $(window).width() */);
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("getClickAnchorOffset for " + elems[i].innerText + " " + rect);
-
-        if (!visible) {
-            continue
-        }
-        var href = elems[i].getAttribute("href");
-        if (href && href.endsWith("#" + target)) {
-            return rect.top;
-        }
-    }
-    
-    return ""
-}
-
-function highlightAnchorText(target, highlightStyle, seconds) {
-    var elem = document.getElementById(target);
-    
-    if (!elem) {
-        elem = document.getElementsByName(target)[0];
-    }
-    
-    while ( elem && elem.innerText.length <= 5 && elem.parentNode && elem.parentNode.childElementCount <= 5 ) {
-        elem = elem.parentNode
-    }
-    while ( elem && elem.innerText.length <= 5 && elem.nextElementSibling ) {
-        elem = elem.nextElementSibling
-    }
-    if (!elem) {
-        return
-    }
-    
-    if (hasClass(elem, highlightStyle) == false) {
-        addClass(elem, highlightStyle)
-        var t = setTimeout(function(){
-            removeClass(elem, highlightStyle)
-        },(seconds*1000));
-    }
-//    var origcolor = elem.style.backgroundColor
-//    elem.style.backgroundColor = color;
-//    var t = setTimeout(function(){
-//        elem.style.backgroundColor = origcolor;
-//    },(seconds*1000));
-    
-//    var rule = "p { background-color: "+color+" !important; }"
-//    var stylesheet = document.styleSheets[document.styleSheets.length-1];
-//    stylesheet.insertRule(rule)
-    
-    window.webkit.messageHandlers.FolioReaderPage.postMessage("highlightAnchorText finished for " + elem.tagName + " " + elem.className);
-
 }
 
 function findElementWithID(node) {
@@ -1116,7 +448,7 @@ function goToEl(el) {
     var bottom = window.innerHeight + document.body.scrollTop;
     var elBottom = el.offsetHeight + el.offsetTop + 60
 
-    if(elBottom > bottom || elTop < top) {
+    if (elBottom > bottom || elTop < top) {
         document.body.scrollTop = el.offsetTop - 20
     }
     
@@ -1127,7 +459,7 @@ function goToEl(el) {
         height to figure out what page the element should appear on and set scroll left
         to scroll to that page.
     */
-    if( document.body.scrollTop == 0 ){
+    if (document.body.scrollTop == 0) {
         var elLeft = document.body.clientWidth * Math.floor(el.offsetTop / window.innerHeight);
         document.body.scrollLeft = elLeft;
     }
@@ -1273,15 +605,6 @@ function wrappingSentencesWithinPTags(){
     sentenceEnd.push(new RegExp("(?![^\\{]*?\\})"));
     sentenceEnd.push(new RegExp("(?![^\\|]*?\\|)"));
     sentenceEnd.push(new RegExp("(?![^\\\\]*?\\\\)"));
-    
-    //chinese edition (not working)
-    sentenceEnd.push(new RegExp("[^\\d][。！？]+"));
-    sentenceEnd.push(new RegExp("(?=([^“”]*“[^”]*”)*[^“”]*?$)"));
-    sentenceEnd.push(new RegExp("(?![^（]*?）)"));
-    sentenceEnd.push(new RegExp("(?![^【]*?】)"));
-    sentenceEnd.push(new RegExp("(?![^［]*?］)"));
-    sentenceEnd.push(new RegExp("(?![^｜]*?｜)"));
-    
     //sentenceEnd.push(new RegExp("(?![^\\/.]*\\/)")); // all could be a problem, but this one is problematic
     
     rxIndex = new RegExp(sentenceEnd.reduce(function (previousValue, currentValue) {
@@ -1443,212 +766,6 @@ function wrappingSentencesWithinPTags(){
     guessSenetences();
 }
 
-function visible(elem) {
-    return !(elem.clientHeight === 0 || elem.clientWidth === 0)
-}
-
-function getVisibleCFI(horizontal) {
-    let first;
-    let firstOff;
-    let firstRange;
-    let firstHorizontalTop;
-    //let allVisible = Array.from(document.querySelectorAll('body > *')).filter(visible)
-    let allVisible = getTextAndImgNodesIn(document.body, false).filter(visible)
-    let bodyWidth = document.body.clientWidth
-    for(const textNode of allVisible) {
-        let elem = textNode.nodeType == 3 ? textNode.parentNode : textNode
-        if (!elem || elem == first) {
-            continue
-        }
-        if (elem.tagName == "HIGHLIGHT") {
-            continue
-        }
-        //Calculate the offset to the document
-        //See: https://stackoverflow.com/a/18673641/7448536
-        const coord = elem.getBoundingClientRect()
-        let offY = coord.top// + document.documentElement.scrollTop
-        let offYB = coord.bottom// + document.documentElement.scrollTop
-        let offX = coord.left// + document.documentElement.scrollLeft
-        let offXR = coord.right// + document.documentElement.scrollLeft
-        
-        if (horizontal) {
-            if (offYB > window.innerHeight) {
-                offXR += window.innerWidth
-            }
-            if (offY < 0) {
-                offX -= window.innerWidth
-            }
-        }
-        
-        const isVisible = !(horizontal ? (offX > window.innerWidth || offXR < 0) : (offY > window.innerHeight || offYB < 0))
-        window.webkit.messageHandlers.FolioReaderPage
-        .postMessage(`getVisibleCFI isVisible:${isVisible} horizontal:${horizontal} ${offX < firstOff}:${firstOff < 0}:${offX > 0}:${offX < window.innerWidth} offX:offXR=${offX}:${offXR} offY:offYB=${offY}:${offYB} innerWidth=${window.innerWidth} innerHeight=${window.innerHeight} outerHTML=${elem.outerHTML.trim()}`);
-        
-        if (!isVisible) {
-            continue
-        }
-        
-        
-        // for horizontal:
-        //    case 1: firstOff < 0, then next offX must be > 0, replace first
-        //    case 2: firstOff > 0, then ignore offX < 0 or offXR > window.innerWidth, and pick smaller firstHorizontalTop
-        // for vertical:
-        //    case 1: firstOff < 0, then next offY must be > 0, replace first
-        //    case 2: firstOff > 0, then pick smaller offY (>0)
-        //if ((first == null) || (horizontal ? ((firstOff < 0) || (offX >= 0 && offXR <= window.innerWidth && offY < firstHorizontalTop)) : ((firstOff < 0) || (offY >= 0 && offY < firstOff)) ) ) {
-        
-        if ((first == null) || (horizontal ? (offX >= 0 && offXR <= window.innerWidth && offY < firstHorizontalTop) : (offY >= 0 && offY < firstOff) )) {
-            first = elem;
-            firstOff = horizontal ? offX : offY;
-            firstHorizontalTop = horizontal ? offY : 0;
-            window.webkit.messageHandlers.FolioReaderPage.postMessage("getVisibleCFI first " + horizontal + " " + first.outerHTML);
-            
-            for (var i = 0; i < first.childNodes.length; i++) {
-                if (first.childNodes[i].nodeType == 1) {    //element
-                    
-                }
-                if (first.childNodes[i].nodeType == 3) {    //text
-                    if (!first.childNodes[i].textContent) {
-                        continue
-                    }
-                    
-                    let range = document.createRange();
-                    
-                    range.setStart(first.childNodes[i], 0);
-                    range.setEnd(first.childNodes[i], first.childNodes[i].textContent.length);
-                    
-                    const clientRect = range.getBoundingClientRect();
-                    if (clientRect.width == 0 || clientRect.height == 0) {
-                        continue
-                    }
-                    
-                    const isVisible = !(horizontal ?
-                                        (clientRect.left > window.innerWidth || clientRect.right < 0) :
-                                        (clientRect.top > window.innerHeight || clientRect.bottom < 0)
-                                        )
-                    window.webkit.messageHandlers.FolioReaderPage.postMessage(`getVisibleCFI range ${isVisible} ${clientRect.left}:${clientRect.right}:${clientRect.top}:${clientRect.bottom} w:h=${clientRect.width}:${clientRect.height} window=${window.innerWidth}:${window.innerHeight} ${first.childNodes[i].textContent.trim()}`);
-                    
-                    if (isVisible) {
-                        firstRange = range;
-                        
-                        //find first visible offset
-                        if (writingMode == "vertical-rl") {
-                            if (clientRect.right > window.innerWidth) { //spanning across page border
-                                var varRange = firstRange
-                                while (varRange.startOffset < varRange.endOffset) {
-                                    var medianOffset = Math.floor((varRange.startOffset + varRange.endOffset) / 2)
-                                    if (medianOffset == varRange.startOffset) {
-                                        break
-                                    }
-
-                                    var medianRange = document.createRange()
-                                    medianRange.setStart(varRange.startContainer, medianOffset)
-                                    medianRange.setEnd(varRange.endContainer, varRange.endOffset)
-
-                                    const medianClientRect = medianRange.getBoundingClientRect()
-
-                                    if (medianClientRect.right > window.innerWidth) {
-                                        varRange.setStart(varRange.startContainer, medianOffset)
-                                    } else {
-                                        varRange.setEnd(varRange.endContainer, medianOffset)
-                                    }
-                                    
-                                    window.webkit.messageHandlers.FolioReaderPage.postMessage(`getVisibleCFI range medianClientRect ${medianClientRect.left}:${medianClientRect.right}:${medianClientRect.top}:${medianClientRect.bottom} ${medianClientRect.width}:${medianClientRect.height} ${varRange.startOffset}:${medianOffset}:${varRange.endOffset} window=${window.scrollX}:${window.scrollY} medianRange=${medianRange.toString().trim()} varRange=${varRange.toString().trim()}`);
-                                }
-                                
-                                let varClientRect = varRange.getBoundingClientRect()
-                                if (varClientRect.right > window.innerWidth) {
-                                    if (varRange.startOffset < varRange.startContainer.textContent.length) {
-                                        varRange.setStart(varRange.startContainer, varRange.startOffset + 1)
-                                    }
-                                    if (varRange.endOffset < varRange.endContainer.textContent.length) {
-                                        varRange.setEnd(varRange.endContainer, varRange.endOffset + 1)
-                                    }
-                                    varClientRect = varRange.getBoundingClientRect()
-                                    window.webkit.messageHandlers.FolioReaderPage.postMessage(`getVisibleCFI range varRange ${varClientRect.left}:${varClientRect.right}:${varClientRect.top}:${varClientRect.bottom} ${varClientRect.width}:${varClientRect.height} window=${window.scrollX}:${window.scrollY} varRange=${varRange.toString().trim()}`);
-                                }
-                            }
-                        } else if (horizontal ? (clientRect.left < 0) : (clientRect.top < 0)) {
-                            var varRange = firstRange
-                            while (varRange.startOffset < varRange.endOffset) {
-                                var medianOffset = Math.floor((varRange.startOffset + varRange.endOffset) / 2)
-                                if (medianOffset == varRange.startOffset) {
-                                    break
-                                }
-
-                                var medianRange = document.createRange()
-                                medianRange.setStart(varRange.startContainer, medianOffset)
-                                medianRange.setEnd(varRange.endContainer, varRange.endOffset)
-
-                                const medianClientRect = medianRange.getBoundingClientRect()
-
-                                if (horizontal ? (medianClientRect.left < 0) : (medianClientRect.top < 0)) {
-                                    varRange.setStart(varRange.startContainer, medianOffset)
-                                } else {
-                                    varRange.setEnd(varRange.endContainer, medianOffset)
-                                }
-                                
-                                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getVisibleCFI range medianClientRect ${medianClientRect.left}:${medianClientRect.right}:${medianClientRect.top}:${medianClientRect.bottom} ${medianClientRect.width}:${medianClientRect.height} ${varRange.startOffset}:${medianOffset}:${varRange.endOffset} window=${window.scrollX}:${window.scrollY} medianRange=${medianRange.toString().trim()} varRange=${varRange.toString().trim()}`);
-                            }
-                            
-                            let varClientRect = varRange.getBoundingClientRect()
-                            if (horizontal ? (varClientRect.left < 0) : (varClientRect.top < 0)) {
-                                if (varRange.startOffset < varRange.startContainer.textContent.length) {
-                                    varRange.setStart(varRange.startContainer, varRange.startOffset + 1)
-                                }
-                                if (varRange.endOffset < varRange.endContainer.textContent.length) {
-                                    varRange.setEnd(varRange.endContainer, varRange.endOffset + 1)
-                                }
-                                varClientRect = varRange.getBoundingClientRect()
-                                window.webkit.messageHandlers.FolioReaderPage.postMessage(`getVisibleCFI range varRange ${varClientRect.left}:${varClientRect.right}:${varClientRect.top}:${varClientRect.bottom} ${varClientRect.width}:${varClientRect.height} window=${window.scrollX}:${window.scrollY} varRange=${varRange.toString().trim()}`);
-                            }
-                        }
-                        
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    var cfiStart = ""
-    var snippet = ""
-    var rangeComponent = ""
-    var rangeSnippet = ""
-    var offsetComponent = ""
-    var offsetSnippet = ""
-    var message = ""
-    if (first) {
-        cfiStart = window.EPUBcfi.generateElementCFIComponent(first,[],["highlight"],[])
-        snippet = first.innerText
-        message = `first ${cfiStart} ${snippet} ${first.outerHTML}`
-        
-        if (firstRange) {
-            rangeComponent = window.EPUBcfi.generateDocumentRangeComponent(firstRange, [], ["highlight"], [])
-            rangeSnippet = firstRange.toString()
-            
-            offsetComponent = window.EPUBcfi.generateCharacterOffsetCFIComponent(firstRange.startContainer, firstRange.startOffset, [], ["highlight"], [])
-            offsetSnippet = rangeSnippet
-            
-            message = `firstRange ${rangeComponent} ${rangeSnippet} ${offsetComponent} ${offsetSnippet} ${first.outerHTML} ${firstRange.toString()}`
-        }
-        
-        window.webkit.messageHandlers.FolioReaderPage.postMessage("getVisibleCFI cfiStart " + cfiStart + " " + first.outerHTML);
-    } else {
-        message = "Cannot locate first"
-    }
-
-    return JSON.stringify({
-        cfi: cfiStart,
-        snippet: snippet,
-        rangeComponent: rangeComponent,
-        rangeSnippet: rangeSnippet,
-        offsetComponent: offsetComponent,
-        offsetSnippet: offsetSnippet,
-        message: message
-    })
-}
-
 // Class based onClick listener
 
 function addClassBasedOnClickListener(schemeName, querySelector, attributeName, selectAll) {
@@ -1684,42 +801,56 @@ var onClassBasedListenerClick = function(schemeName, attributeContent) {
 	window.location = schemeName + "://" + attributeContent + positionParameterString;
 }
 
-function setFolioStyle(styleTextEncoded) {
-    var styleText = window.atob(styleTextEncoded)
-    var head = document.head
-    var style = document.getElementById("folio_style_runtime")
-    if (style == null) {
-        style = document.createElement('style')
-        style.type = "text/css"
-        style.id = "folio_style_runtime"
-        head.appendChild(style)
-    }
-    while (style.firstChild) {
-        style.removeChild(style.firstChild)
-    }
-    style.appendChild(document.createTextNode(styleText))
-    
-//    window.webkit.messageHandlers.FolioReaderPage.postMessage("setFolioStyle " + style.outerHTML)
 
-    var para = document.querySelector('p')
-    var compStyles = window.getComputedStyle(para)
-//    window.webkit.messageHandlers.FolioReaderPage.postMessage("setFolioStyle compStyles p " + compStyles.cssText)
+function getReadingPositionOffset(isHorizontal, tagIndices) {
+    var elm = document.body;
+    for (i = 0; i < tagIndices.length; i++) {
+        elm = elm.children[tagIndices[i]];
+    }
+    return getElementOffset(elm, isHorizontal);
 }
 
-function getOffsetsOfElementsWithID(horizontal) {
+// Get Element offset in the page
+var getElementOffset = function(target, horizontal) {
+    if (horizontal) {
+        return document.body.clientWidth * Math.floor(target.offsetTop / window.innerHeight);
+    }
+    return target.offsetTop;
+}
 
-    const els = document.querySelectorAll("[id]")
-    var offsets = {}
-    
-    for(const elem of els) {
-        if (writingMode == "vertical-rl") {
-            offsets[elem.id] = elem.offsetLeft
-        } else if (horizontal) {
-            offsets[elem.id] = document.body.clientWidth * Math.floor(elem.offsetTop / window.innerHeight);
-        } else {
-            offsets[elem.id] = elem.offsetTop
+
+//Get Read Position Implementation
+function isVisible(el, isHorizontal) {
+    var rect = el.getBoundingClientRect();
+    var isVisible;
+    if (isHorizontal) {
+        isVisible = (rect.left >= 0 || rect.right >= 0) && rect.top >= 0;
+    } else {
+        isVisible = rect.top >= 0 || rect.bottom >= 0;
+    }
+    return isVisible;
+}
+
+function getVisibleChild(parent, isHorizontal) {
+    var children = parent.children, visibleChild;
+    for (var i = 0; i < children.length; i++) {
+        if (isVisible(children[i], isHorizontal)) {
+            visibleChild = children[i];
+            break;
         }
     }
+    return visibleChild;
+}
 
-    return JSON.stringify(offsets)
+function getCurrentPosition(isHorizontal) {
+    var parent = document.body;
+    var parentTags = [];
+    
+    while (parent !== null && parent.children !== null && parent.children.length != 0) {
+        var childNode = getVisibleChild(parent, isHorizontal);
+        var index = Array.prototype.indexOf.call(parent.children, childNode);
+        parentTags.push({"tag": childNode.nodeName, "id": childNode.id, "index": index});
+        parent = childNode;
+    }
+    return JSON.stringify(parentTags);
 }
