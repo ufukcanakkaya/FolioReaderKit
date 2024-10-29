@@ -76,6 +76,10 @@ function changeNightModeTextColor(color) {
     document.documentElement.style.setProperty('--night-mode-header-color', color);
 }
 
+function changePadding(padding) {
+    document.documentElement.style.setProperty('--padding', padding);
+}
+
 // Set font size
 function setFontSize(cls) {
     var elm = document.documentElement;

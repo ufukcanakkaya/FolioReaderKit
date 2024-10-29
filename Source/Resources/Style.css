@@ -38,7 +38,7 @@ html {
 }
 
 body {
-    padding: 40px 20px !important;
+    padding: 40px var(--padding, 20px) !important;
     overflow: hidden !important;
 }
 
