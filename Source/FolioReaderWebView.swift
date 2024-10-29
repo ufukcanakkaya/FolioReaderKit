@@ -104,7 +104,7 @@ open class FolioReaderWebView: WKWebView {
             } else {
                 self.js("getSelectedText()") { textToShare in
                     guard let textToShare = textToShare else { return }
-                    self.folioReader.readerCenter?.shareHighlight(textToShare, rect: sender.menuFrame)
+                    self.folioReader.readerCenter?.shareHighlight(textToShare, rect: .zero)
                 }
             }
             self.setMenuVisible(false)
