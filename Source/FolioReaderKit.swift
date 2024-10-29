@@ -116,6 +116,16 @@ open class FolioReader: NSObject {
 
     /// Check if reader is open and ready
     var isReaderReady = false
+    
+    /// Check padding. Default 20
+    open var padding: Int = 20 {
+        didSet {
+            guard let currentPage = self.readerCenter?.currentPage else {
+                return
+            }
+            currentPage.webView?.js("changePadding('\(padding)')") { _ in }
+        }
+    }
 
     /// Check if layout needs to change to fit Right To Left
     var needsRTLChange: Bool {
@@ -261,16 +271,6 @@ extension FolioReader {
             }
 
             currentPage.webView?.js("setFontSize('\(currentFontSize.cssIdentifier)')") { _ in }
-        }
-    }
-
-    /// Check padding. Default 20
-    open var padding: Int = 20 {
-        didSet {
-            guard let currentPage = self.readerCenter?.currentPage else {
-                return
-            }
-            currentPage.webView?.js("changePadding('\(padding)')") { _ in }
         }
     }
 
