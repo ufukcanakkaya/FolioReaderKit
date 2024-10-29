@@ -467,7 +467,8 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
         let jsTag = "<script type=\"text/javascript\" src=\"\(jsFilePath!)\"></script>" +
         "<script type=\"text/javascript\">setMediaOverlayStyleColors(\(mediaOverlayStyleColors))</script>" +
         "<script type=\"text/javascript\">changeNightModeColor(\(bgColor))</script>" +
-        "<script type=\"text/javascript\">changeNightModeTextColor(\(textColor))</script>"
+        "<script type=\"text/javascript\">changeNightModeTextColor(\(textColor))</script>" +
+        "<script type=\"text/javascript\">changeSpacing(\(self.folioReader.padding))</script>"
 
         let toInject = "\n\(cssTag)\n\(jsTag)\n</head>"
         html = html.replacingOccurrences(of: "</head>", with: toInject)

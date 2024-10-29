@@ -264,6 +264,16 @@ extension FolioReader {
         }
     }
 
+    /// Check padding. Default 20
+    open var padding: Int = 20 {
+        didSet {
+            guard let currentPage = self.readerCenter?.currentPage else {
+                return
+            }
+            currentPage.webView?.js("changePadding('\(padding)')") { _ in }
+        }
+    }
+
     /// Check current audio rate, the speed of speech voice. Default 0
     open var currentAudioRate: Int {
         get { return self.defaults.integer(forKey: kCurrentAudioRate) }
