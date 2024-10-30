@@ -1422,7 +1422,9 @@ extension FolioReaderCenter: FolioReaderPageDelegate {
                 isFirstLoad = false
 
                 if (self.currentPageNumber == pageNumber && pageOffset > 0) {
-                    page.scrollPageToOffset(pageOffset!, animated: false)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
+                        page.scrollPageToOffset(pageOffset!, animated: false)
+                    })
                 }
             } else if (self.isScrolling == false && folioReader.needsRTLChange == true) {
                 page.scrollPageToBottom()
