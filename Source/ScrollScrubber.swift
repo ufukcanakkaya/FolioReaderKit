@@ -106,6 +106,11 @@ class ScrollScrubber: NSObject, UIScrollViewDelegate {
     func reloadColors() {
         slider.minimumTrackTintColor = readerConfig.tintColor
         slider.maximumTrackTintColor = folioReader.isNight(readerConfig.nightModeSeparatorColor, readerConfig.menuSeparatorColor)
+        let thumbImg = UIImage(readerImageNamed: "knob")
+        let thumbImgColor = thumbImg?.imageTintColor(readerConfig.tintColor)?.withRenderingMode(.alwaysOriginal)
+        slider.setThumbImage(thumbImgColor, for: UIControl.State())
+        slider.setThumbImage(thumbImgColor, for: .selected)
+        slider.setThumbImage(thumbImgColor, for: .highlighted)
     }
 
     // MARK: - slider events
