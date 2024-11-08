@@ -41,6 +41,9 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
     /// This delegate receives the events from current page
     open weak var pageDelegate: FolioReaderPageDelegate?
 
+    /// This delegate receives the events from scroll view
+    open weak var scrollDelegate: UIScrollViewDelegate?
+
     /// The base reader container
     open weak var readerContainer: FolioReaderContainer?
 
@@ -1198,6 +1201,7 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
 
     // MARK: - ScrollView Delegate
     open func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        scrollDelegate?.scrollViewWillBeginDragging?(scrollView)
         self.isScrolling = true
         clearRecentlyScrolled()
         recentlyScrolled = true
