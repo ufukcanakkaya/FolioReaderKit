@@ -388,8 +388,10 @@ extension FolioReader {
     }
 
     /// Closes and save the reader current instance.
-    open func close() {
-        self.saveReaderState()
+    open func close(_ shouldSave: Bool = true) {
+        if shouldSave {
+            self.saveReaderState()
+        }
         self.isReaderOpen = false
         self.isReaderReady = false
         self.readerAudioPlayer?.stop(immediate: true)
