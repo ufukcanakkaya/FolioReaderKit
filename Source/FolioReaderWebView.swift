@@ -349,7 +349,6 @@ open class FolioReaderWebView: WKWebView {
         } else {
             // default menu
 //            menuItems = [highlightItem, defineItem, highlightNoteItem]
-            menuItems = [highlightItem]
 
             if self.book.hasAudio || self.readerConfig.enableTTS {
                 menuItems.insert(playAudioItem, at: 0)
