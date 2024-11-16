@@ -335,7 +335,8 @@ open class FolioReaderWebView: WKWebView {
 
         // menu on existing highlight
         if isShare {
-            menuItems = [colorsItem, editNoteItem, removeItem]
+//            menuItems = [colorsItem, editNoteItem, removeItem]
+            menuItems = [colorsItem, removeItem]
             
             if (self.readerConfig.allowSharing == true) {
                 menuItems.append(shareItem)
@@ -347,7 +348,8 @@ open class FolioReaderWebView: WKWebView {
             menuItems = [yellowItem, greenItem, blueItem, pinkItem, underlineItem]
         } else {
             // default menu
-            menuItems = [highlightItem, defineItem, highlightNoteItem]
+//            menuItems = [highlightItem, defineItem, highlightNoteItem]
+            menuItems = [highlightItem]
 
             if self.book.hasAudio || self.readerConfig.enableTTS {
                 menuItems.insert(playAudioItem, at: 0)
