@@ -142,8 +142,13 @@ open class FolioReaderPage: UICollectionViewCell, WKNavigationDelegate, UIGestur
         // Load the html into the webview
         webView?.alpha = 0
         let headerString = "<meta name=\"viewport\" content=\"initial-scale=1.0\" />"
+        guard var url = baseURL else { return }
+        while url.absoluteString.count > 0,
+              url.absoluteString.contains("OEBPS/Text") {
+            url.deleteLastPathComponent()
+        }
         DispatchQueue.main.async {
-            self.webView?.loadFileURL(baseURL, allowingReadAccessTo: baseURL)
+            self.webView?.loadFileURL(baseURL, allowingReadAccessTo: url)
             self.webView?.loadHTMLString(headerString + tempHtmlContent, baseURL: baseURL)
         }
     }
