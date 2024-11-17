@@ -463,6 +463,7 @@ internal extension UIViewController {
         navBar?.isTranslucent = translucent
         navBar?.tintColor = tintColor
         navBar?.titleTextAttributes = [NSAttributedString.Key.foregroundColor: titleColor, NSAttributedString.Key.font: font]
+        navBar?.backgroundColor = color
     }
 }
 /**
