@@ -117,8 +117,10 @@ open class FolioReaderWebView: WKWebView {
         alertController.addAction(cancel)
 
         if let alert = alertController.popoverPresentationController {
-            alert.sourceView = self.folioReader.readerCenter?.currentPage
-            alert.sourceRect = sender.menuFrame
+            let view = self.folioReader.readerCenter?.currentPage ?? UIView()
+            alert.sourceView = view
+            alert.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+            alert.permittedArrowDirections = []
         }
 
         self.folioReader.readerCenter?.present(alertController, animated: true, completion: nil)
