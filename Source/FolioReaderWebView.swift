@@ -9,12 +9,19 @@ import WebKit
 
 public typealias JSCallback = ((String?) ->())
 
+public protocol FolioReaderWebViewDelegate: AnyObject {
+    func setHighlight(_ highlight: Highlight?)
+    func removeHighlight(_ highlight: Highlight?)
+}
+
 /// The custom WebView used in each page
 open class FolioReaderWebView: WKWebView {
     
     var isColors = false
     var isShare = false
     var isOneWord = false
+
+    open weak var delegate: FolioReaderWebViewDelegate?
 
     fileprivate weak var readerContainer: FolioReaderContainer?
 
@@ -64,7 +71,8 @@ open class FolioReaderWebView: WKWebView {
             if action == #selector(highlight(_:))
                 || action == #selector(highlightWithNote(_:))
                 || action == #selector(updateHighlightNote(_:))
-                || (action == #selector(define(_:)) && isOneWord)
+                || action == #selector(removeHighlight(_:))
+//                || (action == #selector(define(_:)) && isOneWord)
                 || (action == #selector(play(_:)) && (book.hasAudio || readerConfig.enableTTS))
                 || (action == #selector(share(_:)) && readerConfig.allowSharing)
                 || (action == #selector(copy(_:)) && readerConfig.allowSharing) {
@@ -142,6 +150,18 @@ open class FolioReaderWebView: WKWebView {
         setMenuVisible(false)
     }
 
+    @objc func removeHighlight(_ sender: UIMenuController?) {
+
+        js("removeThisHighlight()") { removedId in
+            guard let removedId = removedId else { return }
+            let highlight = Highlight.getById(withConfiguration: self.readerConfig, highlightId: removedId)
+            self.delegate?.removeHighlight(highlight)
+            Highlight.removeById(withConfiguration: self.readerConfig, highlightId: removedId)
+        }
+
+        setMenuVisible(false)
+    }
+
     @objc func highlight(_ sender: UIMenuController?) {
         
         js("highlightString('\(HighlightStyle.classForStyle(self.folioReader.currentHighlightStyle))')") { highlightAndReturn in
@@ -173,6 +193,7 @@ open class FolioReaderWebView: WKWebView {
                     let match = Highlight.MatchingHighlight(text: html, id: identifier, startOffset: startOffset, endOffset: endOffset, bookId: bookId, currentPage: pageNumber)
                     let highlight = Highlight.matchHighlight(match)
                     highlight?.persist(withConfiguration: self.readerConfig)
+                    self.delegate?.setHighlight(highlight)
                 }
                 
             } catch {
@@ -304,10 +325,11 @@ open class FolioReaderWebView: WKWebView {
         let menuController = UIMenuController.shared
 
         let highlightItem = UIMenuItem(title: self.readerConfig.localizedHighlightMenu, action: #selector(highlight(_:)))
+        let removeHighlightItem = UIMenuItem(title: self.readerConfig.localizedRemoveHighlight, action: #selector(removeHighlight(_:)))
         let highlightNoteItem = UIMenuItem(title: self.readerConfig.localizedHighlightNote, action: #selector(highlightWithNote(_:)))
         let editNoteItem = UIMenuItem(title: self.readerConfig.localizedHighlightNote, action: #selector(updateHighlightNote(_:)))
         let playAudioItem = UIMenuItem(title: self.readerConfig.localizedPlayMenu, action: #selector(play(_:)))
-        let defineItem = UIMenuItem(title: self.readerConfig.localizedDefineMenu, action: #selector(define(_:)))
+//        let defineItem = UIMenuItem(title: self.readerConfig.localizedDefineMenu, action: #selector(define(_:)))
         let colorsItem = UIMenuItem(title: "C", image: colors) { [weak self] _ in
             self?.colors(menuController)
         }
@@ -338,7 +360,7 @@ open class FolioReaderWebView: WKWebView {
         // menu on existing highlight
         if isShare {
 //            menuItems = [colorsItem, editNoteItem, removeItem]
-            menuItems = [colorsItem, removeItem]
+            menuItems = [colorsItem, removeHighlightItem]
             
             if (self.readerConfig.allowSharing == true) {
                 menuItems.append(shareItem)
@@ -355,6 +377,8 @@ open class FolioReaderWebView: WKWebView {
             if self.book.hasAudio || self.readerConfig.enableTTS {
                 menuItems.insert(playAudioItem, at: 0)
             }
+
+            menuItems.append(highlightItem)
 
             if (self.readerConfig.allowSharing == true) {
                 menuItems.append(shareItem)
